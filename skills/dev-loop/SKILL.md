@@ -28,8 +28,9 @@ cheaper to change than a document, and it's where the human steers.
 ### 2. Plan — in a loop, with compaction
 Draft the main plan, iterate it across a long session; when context fills, **compact** and
 keep going (the plan survives the compaction, the noise doesn't). Then **save the plan to a
-file** (`plans/<feature>.md` in the KB). The saved plan is the contract between this session
-and the next — and the thing goal-mode reads when you're away.
+file** (`docs/plans/<feature>.md`, `node_type: plan` — per the kb-curate ontology). The
+saved plan is the contract between this session and the next — and the thing goal-mode reads
+when you're away.
 
 ### 3. Implement — in a loop
 Execute the saved plan step by step in a loop. The human watches each step land — this is
@@ -75,11 +76,11 @@ it unwatched, don't automate it unwatched.
 
 ## Why this, not the fashionable thing
 
-- **vs Spec-Driven Development / GitHub Spec-Kit** (`/specify` → `/plan` → `/tasks` →
-  `/implement`, a "constitution", spec-as-source-of-truth): that replaces a conversation
-  with a document pipeline and front-loads ceremony. Here recon + talk *is* the spec, and
-  the only artifact is a lightweight saved plan you can throw away. Specs rot; a short plan
-  + the code + the KB don't.
+- **vs Spec-Driven Development / GitHub Spec-Kit** (specify → plan → tasks → implement, a
+  "constitution", spec-as-source-of-truth): that replaces a conversation with a document
+  pipeline and front-loads ceremony. Here recon + talk *is* the spec, and the only artifact
+  is a lightweight saved plan you revise or replace. Specs rot; a short plan + the code +
+  the KB don't.
 - **vs BMAD / agile-role agent casts** (PM/Architect/Dev/Tester bots): role-play theater.
   One capable model plus a human who understands the system beats a cast of personas.
 - **vs autonomous agent swarms**: orchestration is already fragile past a handful of agents
