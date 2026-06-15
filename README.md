@@ -45,8 +45,16 @@ right file instead of grepping blind.
 | `lint` | *(optional)* ontology checks: broken links, frontmatter, folder READMEs |
 | `version` | — |
 
-Plus a **Claude Code plugin**: skills `kb-search` + `kb-curate` and a `/kb` command, so the
-agent searches the KB instead of grepping, and follows light curation rules when editing.
+Plus a **Claude Code plugin** with three skills and a `/kb` command:
+
+| skill | what |
+|---|---|
+| `kb-search` | search the KB (FTS5) instead of grepping blind |
+| `kb-curate` | light ontology rules when adding/editing docs (types, frontmatter, typed links) |
+| `dev-flow` | the spec-driven loop to ship a feature: research → tasks → goal → **spec (md via `kb-curate`)** → isolated **git worktree** → implement → tests → independent review → dev-tests → prod-tests → ship (MR → `dev` → `main`). Feature to prod in ~40 min – 2 h. |
+
+So the agent searches the KB instead of grepping, follows light curation rules when
+editing, and ships changes through one repeatable, gated flow built around the KB.
 
 ## Quickstart
 
