@@ -45,8 +45,11 @@ right file instead of grepping blind.
 | `lint` | *(optional)* ontology checks: broken links, frontmatter, folder READMEs |
 | `version` | — |
 
-Plus a **Claude Code plugin**: skills `kb-search` + `kb-curate` and a `/kb` command, so the
-agent searches the KB instead of grepping, and follows light curation rules when editing.
+Plus a **Claude Code plugin**: skills `kb-search` + `kb-curate` + `dev-loop`, and a `/kb`
+command — so the agent searches the KB instead of grepping, follows light curation rules
+when editing, and (via `dev-loop`) builds the way this project does: recon → talk → plan →
+loop → ship, human-in-the-loop the whole way, cross-model review via `codex exec`. No
+spec-ceremony, no agent swarm — radical simplicity applied to the dev loop, not just the KB.
 
 ## Quickstart
 
