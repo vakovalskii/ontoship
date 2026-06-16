@@ -85,8 +85,8 @@ fuzzy/substring/non-Latin matching — detected automatically, degrades graceful
 
 ```text
 /plugin marketplace add vakovalskii/ontoship
-/plugin install gitmark@gitmark-marketplace
-/plugin install destructive-guard@gitmark-marketplace   # optional: the safety hook
+/plugin install gitmark@ontoship
+/plugin install destructive-guard@ontoship   # optional: the safety hook
 ```
 
 Or just copy `skills/` and `commands/` into your repo's `.claude/` — project-local, no
