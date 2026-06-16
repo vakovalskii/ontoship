@@ -64,6 +64,25 @@ editing, and ships changes through one repeatable, gated flow built around the K
 | `/kb-map` | build the self-contained HTML graph of the KB and open it |
 | `/ship` | run the dev-flow on a feature/fix: research → … → ship (MR → dev → main) |
 
+### What to write after a command (for best results)
+
+The argument after the command is the prompt — be specific, results scale with it.
+
+**`/kb <query>`** — a topic, symbol, concept or question to find in the KB.
+- Good: `/kb how is the billing webhook signature verified`, `/kb tier rate limits`, `/kb sandbox isolation`.
+- Use concrete nouns, not full sentences. Cyrillic, typos and substrings are fine (trigram/fuzzy).
+- Bare `/kb` → prints index stats + the syntax.
+
+**`/kb-map [output-path]`** — usually nothing (defaults to `docs-map.html`).
+- Optional path: `/kb-map build/graph.html`.
+
+**`/ship <what + why + done>`** — describe the change as fully as you can; this is what makes
+the dev-flow good. Include **what** to do, **why** (the goal), and the **done-criteria**, and
+name the target service/file if you know it.
+- Good: `/ship add a 60 rpm rate-limit to /api/search; goal: stop abuse; done = HTTP 429 over the limit + a unit test + a note in docs/reference/limits.md`.
+- Weak: `/ship fix search` → the agent has to guess the goal and the done-criteria.
+- Add "deploy it" / "don't deploy" if you want to control the last step.
+
 **`destructive-guard`** — a `PreToolUse` Bash hook that intercepts destructive commands
 (`rm`, `git reset --hard`, `docker rm -v`, SQL `DROP/TRUNCATE`) and forces a y/n
 confirmation **even in bypassPermissions**, with sound + a macOS banner. Token-level
