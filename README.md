@@ -47,7 +47,7 @@ right file instead of grepping blind.
 
 OntoShip ships as a Claude Code **marketplace with two plugins** — `gitmark` (KB + dev-flow) and `destructive-guard` (safety hook).
 
-**`gitmark`** — three skills and four commands:
+**`gitmark`** — three skills and five commands:
 
 | skill | what |
 |---|---|
@@ -62,7 +62,8 @@ editing, and ships changes through one repeatable, gated flow built around the K
 |---|---|
 | `/kb` | search the KB (FTS5) and answer from the top hits |
 | `/kb-map` | build the self-contained HTML graph of the KB and open it |
-| `/doc` | compose/update a KB doc following the ontology (wraps `kb-curate`) |
+| `/doc` | compose/update **one** KB doc following the ontology (wraps `kb-curate`) |
+| `/onto-doc` | build the **whole** KB — fans out kb-curate curator agents per area, then lint + index + map |
 | `/ship` | run the dev-flow on a feature/fix: research → … → ship (MR → dev → main) |
 
 ### What to write after a command (for best results)
@@ -81,6 +82,12 @@ The argument after the command is the prompt — be specific, results scale with
 node_type+folder, writes frontmatter + typed links, and indexes it.
 - Good: `/doc how the billing webhook verifies the YooKassa signature`, `/doc decision: drop Firecracker-per-session`.
 - It searches first and **edits** an existing doc instead of duplicating.
+
+**`/onto-doc [scope]`** — bootstrap/rebuild the **entire** KB. Empty = whole repo; or scope it
+(`/onto-doc services/api services/billing`, or `/onto-doc only reference docs`).
+- Surveys the codebase, splits it into doc areas, and **dispatches a curator agent per area**
+  (parallel), then lints + reindexes + regenerates the graph.
+- Use it on a fresh repo to stand up docs/ from nothing, or to backfill coverage.
 
 **`/ship <what + why + done>`** — describe the change as fully as you can; this is what makes
 the dev-flow good. Include **what** to do, **why** (the goal), and the **done-criteria**, and
