@@ -311,8 +311,9 @@ def cmd_stat(root: Path) -> dict:
 # Словари из docs/reference/gitmark-ontology.md (source of truth).
 NODE_TYPES = {"service", "reference", "runbook", "gotcha", "decision",
               "plan", "guide", "report", "index", "memory"}
-SERVICES = {"drift", "skillsbd", "coder", "api", "litellm", "search", "ocr",
-            "hub-frontend", "partner", "_platform"}
+# Реальный словарь сервисов выводится per-repo из имён папок docs/services/*
+# (см. cmd_lint). Здесь — только кросс-срезовый sentinel.
+SERVICES = {"_platform"}
 STATUSES = {"active", "draft", "deprecated", "archived"}
 LOAD_BEARING = {"service", "reference", "runbook", "plan", "decision"}
 LINK_KEYS = {"documents", "depends_on", "supersedes", "relates_to",
@@ -367,6 +368,12 @@ def cmd_lint(root: Path, paths: list | None = None) -> dict:
     issues = []  # (level, code, path, msg)
     fm_cache = {}
     sel = set(paths) if paths else None
+    # словарь сервисов выводится per-repo: sentinel + имена всех папок под docs/
+    # (сервис обычно = папка docs/services/<svc> или группирующая папка docs/<svc>)
+    docs_root = root / "docs"
+    services_vocab = set(SERVICES)
+    if docs_root.exists():
+        services_vocab |= {d.name for d in docs_root.rglob("*") if d.is_dir()}
 
     for p in docs:
         rel = p.relative_to(root).as_posix()
@@ -411,7 +418,7 @@ def cmd_lint(root: Path, paths: list | None = None) -> dict:
         if nt not in NODE_TYPES:
             issues.append(("ERR", "I2", rel, f"node_type='{nt}' вне словаря"))
         svc = fm.get("service")
-        if svc and svc not in SERVICES:
+        if svc and svc not in services_vocab:
             issues.append(("WARN", "I2", rel, f"service='{svc}' вне словаря"))
         st = fm.get("status")
         if st and st not in STATUSES:

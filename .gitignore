@@ -1,6 +1,10 @@
 # GitMark derived search index — regenerated from md via `gitmark index`
 .gitmark/
 
+# GitMark derived HTML overview/graph — regenerated via `gitmark map`
+docs-map.html
+*-map.html
+
 # Python bytecode
 __pycache__/
 *.pyc
