@@ -99,7 +99,12 @@ name the target service/file if you know it.
 **`destructive-guard`** — a `PreToolUse` Bash hook that intercepts destructive commands
 (`rm`, `git reset --hard`, `docker rm -v`, SQL `DROP/TRUNCATE`) and forces a y/n
 confirmation **even in bypassPermissions**, with sound + a macOS banner. Token-level
-parsing — no false positives on `perform`/`transform`/`terraform`.
+parsing — no false positives on `perform`/`transform`/`terraform`. See
+[`destructive-guard/README.md`](destructive-guard/README.md).
+
+> For the banner **click to focus your terminal** (iTerm2/Terminal/VS Code) instead of
+> Script Editor, install `terminal-notifier` (`brew install terminal-notifier`) — optional;
+> sound + banner work without it.
 
 ## Quickstart
 
