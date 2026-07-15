@@ -49,17 +49,23 @@
 
 ## Уведомления (macOS)
 
-По детекту — системный звук + баннер. Чтобы **клик по баннеру возвращал в терминал**
-(iTerm2/Terminal/VS Code/…), а не открывал Script Editor, поставь `terminal-notifier`:
+По детекту — системный звук + баннер. **По умолчанию — через `osascript`**: баннер
+виден всегда, но клик по нему открывает Script Editor, а не терминал (ограничение
+`osascript display notification`).
+
+Чтобы **клик возвращал в терминал** (iTerm2/Terminal/VS Code/…), есть opt-in через
+`terminal-notifier`:
 
 ```bash
 brew install terminal-notifier
+export NDG_NOTIFIER=terminal-notifier
 ```
 
-Без него баннер и звук всё равно работают (osascript-фолбэк), но клик уводит в Script
-Editor — это ограничение `osascript display notification`, обойти без стороннего
-инструмента нельзя. Терминал определяется автоматически (`__CFBundleIdentifier` →
-`TERM_PROGRAM`); можно задать явно через `NDG_TERM_BUNDLE`.
+⚠️ **Важно:** terminal-notifier на многих Mac (особенно Sequoia) молча гасится, пока
+ему вручную не выдать разрешение: **System Settings → Notifications → terminal-notifier
+→ Allow Notifications**. Без разрешения баннера не будет вообще — поэтому дефолт именно
+osascript. Терминал определяется автоматически (`__CFBundleIdentifier` → `TERM_PROGRAM`);
+можно задать явно через `NDG_TERM_BUNDLE`.
 
 Проверить уведомление:
 
@@ -86,8 +92,10 @@ python3 hooks/confirm-destructive.py --test --mode bypassPermissions "rm file.tx
 | Переменная | Дефолт | Что делает |
 |---|---|---|
 | `NDG_NOTIFY` | `1` | `0` — выключить звук/баннер |
+| `NDG_NOTIFIER` | `osascript` | `terminal-notifier` — клик-в-терминал (нужен бинарь + разрешение в System Settings) |
 | `NDG_SOUND` | `Funk` | системный звук macOS (Funk/Sosumi/Basso/Glass/Ping/Hero…) |
-| `NDG_TERM_BUNDLE` | — | bundle-id терминала для клика по баннеру (переопределяет автоопределение) |
+| `NDG_TERM_BUNDLE` | — | bundle-id терминала для клика (только при `NDG_NOTIFIER=terminal-notifier`) |
+| `NDG_LOG` | — | путь для отладочного лога; либо `touch ~/.claude/ndg-debug` → `~/.claude/ndg-debug.log` |
 | `NDG_TIMEOUT_MS` | `200` | внутренний лимит на разбор одной команды |
 | `NDG_FAIL_CLOSED` | `0` | `1` — при сбое/таймауте разбора спрашивать (по умолчанию — fail-open: пропускать) |
 

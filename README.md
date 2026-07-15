@@ -102,9 +102,10 @@ confirmation **even in bypassPermissions**, with sound + a macOS banner. Token-l
 parsing — no false positives on `perform`/`transform`/`terraform`. See
 [`destructive-guard/README.md`](destructive-guard/README.md).
 
-> For the banner **click to focus your terminal** (iTerm2/Terminal/VS Code) instead of
-> Script Editor, install `terminal-notifier` (`brew install terminal-notifier`) — optional;
-> sound + banner work without it.
+> The banner uses `osascript` by default (always shown). To make **clicking it focus your
+> terminal** (iTerm2/Terminal/VS Code) instead of Script Editor, opt in with
+> `brew install terminal-notifier` + `NDG_NOTIFIER=terminal-notifier` — note macOS may
+> require granting terminal-notifier notification permission first.
 
 ## Quickstart
 

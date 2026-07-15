@@ -1,7 +1,7 @@
 {
   "name": "destructive-guard",
   "description": "Детект команд на удаление (rm/shred/dd/mkfs, git reset --hard/push --force/filter-branch, docker rm/prune/compose down -v, kubectl delete, terraform/pulumi destroy, aws/gcloud/az delete, redis FLUSHALL, SQL DROP/TRUNCATE + mongo dropDatabase) → запрос подтверждения y/n. Работает даже в bypassPermissions. Звук + macOS-баннер (клик → фокус терминала через terminal-notifier). Разбор по токенам — без ложных срабатываний на perform/transform/terraform.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "Valera Kovalskii"
   },

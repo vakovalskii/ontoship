@@ -69,10 +69,13 @@ _NOTIFY = os.environ.get("NDG_NOTIFY", "1") != "0"
 # Имя системного звука macOS (Funk/Sosumi/Basso/Glass/Ping/Hero...). NDG_SOUND.
 _SOUND = os.environ.get("NDG_SOUND", "Funk")
 _TITLE = "🛡️ Команда на удаление"
-# Bundle-id терминала-хоста можно задать явно: NDG_TERM_BUNDLE.
-# Клик по баннеру возвращает в этот терминал — но только если установлен
-# terminal-notifier (`brew install terminal-notifier`). Без него — osascript-
-# фолбэк: баннер есть, но клик открывает Script Editor, а не терминал.
+# Механизм баннера. По умолчанию osascript — он всегда виден (Script Editor уже
+# имеет разрешение на уведомления в macOS). terminal-notifier даёт клик-в-терминал,
+# НО на многих Mac молча гасится, пока ему вручную не выдадут разрешение в
+# System Settings → Notifications, поэтому он строго opt-in: NDG_NOTIFIER=terminal-notifier.
+_NOTIFIER = os.environ.get("NDG_NOTIFIER", "osascript").lower()
+# Bundle-id терминала-хоста (для NDG_NOTIFIER=terminal-notifier) можно задать
+# явно: NDG_TERM_BUNDLE. Иначе — автоопределение по __CFBundleIdentifier/TERM_PROGRAM.
 _TERM_BUNDLES = {
     "iTerm.app": "com.googlecode.iterm2",
     "Apple_Terminal": "com.apple.Terminal",
@@ -161,9 +164,11 @@ def _alert(reason: str):
     """Звук + баннер-уведомление (macOS) + терминальный BEL. Fire-and-forget,
     stdout НЕ трогаем (там только JSON-решение хука).
 
-    Если установлен terminal-notifier — уведомление постится от имени терминала
-    (`-sender <bundle>`): правильная иконка + клик возвращает в терминал. Иначе —
-    osascript-фолбэк (баннер есть, но клик открывает Script Editor)."""
+    По умолчанию — osascript (надёжно, баннер виден всегда; клик открывает Script
+    Editor). Если NDG_NOTIFIER=terminal-notifier и он установлен + определён терминал
+    — уведомление постится от имени терминала (`-sender <bundle>`): правильная иконка
+    + клик возвращает в терминал (требует разрешения terminal-notifier в System
+    Settings, иначе macOS молча его гасит)."""
     if not _NOTIFY:
         return
     # BEL в stderr — если в терминале включён visual bell, экран мигнёт
@@ -179,18 +184,19 @@ def _alert(reason: str):
     try:
         tn = shutil.which("terminal-notifier")
         bundle = _term_bundle_id()
-        _log(f"alert: tn={tn!r} bundle={bundle!r} "
+        use_tn = _NOTIFIER == "terminal-notifier" and bool(tn) and bool(bundle)
+        _log(f"alert: notifier={_NOTIFIER} tn={tn!r} bundle={bundle!r} "
              f"TERM_PROGRAM={os.environ.get('TERM_PROGRAM')!r} "
              f"__CFBundleIdentifier={os.environ.get('__CFBundleIdentifier')!r} "
              f"NDG_TERM_BUNDLE={os.environ.get('NDG_TERM_BUNDLE')!r} "
-             f"path={'terminal-notifier' if (tn and bundle) else 'osascript-fallback'}")
-        if tn and bundle:
-            # от имени терминала: иконка терминала + клик фокусит его
+             f"path={'terminal-notifier' if use_tn else 'osascript'}")
+        if use_tn:
+            # opt-in: от имени терминала — иконка терминала + клик фокусит его
             subprocess.Popen(
                 [tn, "-title", _TITLE, "-message", safe,
                  "-sound", _SOUND, "-sender", bundle], **dn)
             return
-        # фолбэк: display notification = баннер + звук одним вызовом
+        # дефолт: display notification = баннер + звук одним вызовом (всегда виден)
         subprocess.Popen(
             ["osascript", "-e",
              f'display notification "{safe}" with title "{_TITLE}" sound name "{_SOUND}"'],
@@ -522,14 +528,19 @@ def main():
     if "--test-notify" in sys.argv[1:]:
         _alert("демо-уведомление: rm -rf /var/data")
         tn = shutil.which("terminal-notifier")
-        bundle = _term_bundle_id() or "?"
-        if tn and bundle != "?":
-            print(f"баннер отправлен через terminal-notifier от имени {bundle} — "
-                  f"клик должен вернуть в терминал")
+        bundle = _term_bundle_id()
+        if _NOTIFIER == "terminal-notifier" and tn and bundle:
+            print(f"баннер через terminal-notifier от имени {bundle} — клик вернёт "
+                  f"в терминал (нужно разрешение terminal-notifier в System Settings)")
         else:
-            miss = "terminal-notifier не найден" if not tn else "терминал не определён"
-            print(f"баннер отправлен через osascript-фолбэк ({miss}) — "
-                  f"клик откроет Script Editor, не терминал")
+            why = ""
+            if _NOTIFIER != "terminal-notifier":
+                why = "дефолт osascript; для клик-в-терминал: NDG_NOTIFIER=terminal-notifier"
+            elif not tn:
+                why = "NDG_NOTIFIER=terminal-notifier, но бинарь не найден в PATH"
+            else:
+                why = "терминал не определён (задай NDG_TERM_BUNDLE)"
+            print(f"баннер через osascript — клик откроет Script Editor. ({why})")
         sys.exit(0)
 
     if "--test" in sys.argv[1:]:
