@@ -62,6 +62,7 @@ import json
 import re
 import shutil
 import subprocess
+import time
 
 # Звук/уведомление при детекте можно отключить: NDG_NOTIFY=0
 _NOTIFY = os.environ.get("NDG_NOTIFY", "1") != "0"
@@ -88,6 +89,31 @@ _TERM_BUNDLES = {
 # если только не NDG_FAIL_CLOSED=1.
 _TIMEOUT_S = max(0.0, float(os.environ.get("NDG_TIMEOUT_MS", "200"))) / 1000.0
 _FAIL_CLOSED = os.environ.get("NDG_FAIL_CLOSED", "0") == "1"
+
+# Отладочный лог. Путь берём из NDG_LOG; либо, если существует sentinel-файл
+# ~/.claude/ndg-debug, пишем в ~/.claude/ndg-debug.log. Так логи включаются без
+# правки env плагина: `touch ~/.claude/ndg-debug`.
+def _resolve_log():
+    p = os.environ.get("NDG_LOG")
+    if p:
+        return os.path.expanduser(p)
+    sentinel = os.path.expanduser("~/.claude/ndg-debug")
+    if os.path.exists(sentinel):
+        return os.path.expanduser("~/.claude/ndg-debug.log")
+    return None
+
+
+_LOG = _resolve_log()
+
+
+def _log(msg: str):
+    if not _LOG:
+        return
+    try:
+        with open(_LOG, "a") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
+    except Exception:
+        pass
 
 DB_CLIENTS = r'\b(psql|mysql|mariadb|mongosh|mongo|clickhouse-client|clickhouse|sqlite3|dropdb)\b'
 PREFIXES = {"sudo", "command", "time", "env", "nohup", "builtin", "exec",
@@ -153,6 +179,11 @@ def _alert(reason: str):
     try:
         tn = shutil.which("terminal-notifier")
         bundle = _term_bundle_id()
+        _log(f"alert: tn={tn!r} bundle={bundle!r} "
+             f"TERM_PROGRAM={os.environ.get('TERM_PROGRAM')!r} "
+             f"__CFBundleIdentifier={os.environ.get('__CFBundleIdentifier')!r} "
+             f"NDG_TERM_BUNDLE={os.environ.get('NDG_TERM_BUNDLE')!r} "
+             f"path={'terminal-notifier' if (tn and bundle) else 'osascript-fallback'}")
         if tn and bundle:
             # от имени терминала: иконка терминала + клик фокусит его
             subprocess.Popen(
@@ -517,15 +548,19 @@ def main():
         result = _safe_detect(cmd)
     except Exception:
         # fail-open по умолчанию: не мешаем работе. fail-closed → спросить.
+        _log(f"detect-error cmd={cmd!r} fail_closed={_FAIL_CLOSED}")
         if _FAIL_CLOSED:
             ask("детектор не смог разобрать команду в срок (fail-closed)")
         proceed()
+    mode = data.get("permission_mode") or ""
+    _log(f"cmd={cmd!r} mode={mode!r} result={result!r}")
     if result:
         severity, reason = result
-        mode = data.get("permission_mode") or ""
         # в bypass поднимаем y/n только на CRITICAL; ORDINARY проходит молча
         if mode in RELAXED_MODES and severity != CRIT:
+            _log(f"decision=proceed (bypass ORDINARY) severity={severity}")
             proceed()
+        _log(f"decision=ask severity={severity} reason={reason!r}")
         ask(reason)
     proceed()
 
