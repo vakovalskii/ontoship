@@ -1,302 +1,558 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>destructive-guard — справочник правил</title>
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0A0E0F">
+
+<title>destructive-guard — a y/N between your AI agent and catastrophe</title>
+<meta name="description" content="A Claude Code PreToolUse hook that intercepts destructive shell commands — rm -rf, git reset --hard, docker prune, kubectl delete, terraform destroy, DROP TABLE — and turns them into a y/N confirmation. Works even in bypassPermissions. Pure Python, zero config.">
+<link rel="canonical" href="https://vakovalskii.github.io/ontoship/">
+<meta name="robots" content="index, follow">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="destructive-guard">
+<meta property="og:title" content="destructive-guard — a y/N between your AI agent and catastrophe">
+<meta property="og:description" content="A Claude Code hook that catches rm -rf, git reset --hard, docker prune, kubectl delete, terraform destroy, DROP TABLE — and asks before they run.">
+<meta property="og:url" content="https://vakovalskii.github.io/ontoship/">
+<meta property="og:image" content="https://vakovalskii.github.io/ontoship/og.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="destructive-guard — intercepts destructive commands from AI coding agents">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="destructive-guard — a y/N between your AI agent and catastrophe">
+<meta name="twitter:description" content="A Claude Code hook that catches rm -rf, git reset --hard, terraform destroy, DROP TABLE — and asks before they run.">
+<meta name="twitter:image" content="https://vakovalskii.github.io/ontoship/og.png?v=1">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230A0E0F'/><path d='M50 16 L78 26 V50 C78 68 66 80 50 86 C34 80 22 68 22 50 V26 Z' fill='none' stroke='%2334D399' stroke-width='6' stroke-linejoin='round'/><path d='M40 50 l7 8 14-16' fill='none' stroke='%2334D399' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "destructive-guard",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Claude Code (macOS, Linux)",
+  "description": "A PreToolUse hook for Claude Code that intercepts destructive shell commands and turns them into a y/N confirmation.",
+  "url": "https://vakovalskii.github.io/ontoship/",
+  "downloadUrl": "https://github.com/vakovalskii/ontoship",
+  "softwareVersion": "0.2.1",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+</script>
+
 <style>
+/* Hallmark · macrostructure: Demo-Led Hero · genre: atmospheric · theme: custom "Guard Green"
+ * tone: technical/edgy · paper: dark (#0A0E0F) · display: system-sans · accent: emerald + danger-red
+ * pre-emit critique: P5 H5 E4 S4 R4 V4
+ */
+:root{
+  --bg:#0A0E0F; --surface:#12181A; --surface-2:#0F1416; --border:#1F2A2D;
+  --text:#E6EDEA; --muted:#8A9A94; --faint:#5c6b66;
+  --accent:#34D399; --accent-dim:#0F3D31; --accent-ink:#062018;
+  --danger:#FF5C5C; --warn:#FBBF24;
+  --ord:#FBBF24; --ord-dim:#3a2e0c;
+  --code:#0c1113;
+  --shadow:0 24px 60px -24px rgba(0,0,0,.7);
+  --edge:inset 0 1px 0 rgba(255,255,255,.06);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+  --sp:clamp(5rem,11vh,9rem);
+  --ease:cubic-bezier(.2,.6,.2,1);
+}
+@media (prefers-color-scheme:light){
   :root{
-    --bg:#f7f8fa; --panel:#ffffff; --ink:#1a1d24; --muted:#5b6472;
-    --line:#e6e9ef; --accent:#3b5bdb; --code:#f0f2f6;
-    --crit-bg:#fdecec; --crit-fg:#b42318; --crit-line:#f2c9c4;
-    --ord-bg:#fff6e6; --ord-fg:#9a5b00; --ord-line:#f0d9ad;
-    --skip-bg:#eef1f5; --skip-fg:#5b6472;
+    --bg:#F5F8F7; --surface:#FFFFFF; --surface-2:#F0F5F3; --border:#DCE6E2;
+    --text:#0A0E0F; --muted:#4a5a54; --faint:#8aa;
+    --accent:#0E9F6E; --accent-dim:#D6F2E7; --accent-ink:#053d2b;
+    --danger:#D64545; --warn:#B4790a;
+    --ord:#B4790a; --ord-dim:#f5ead0;
+    --code:#eef4f2;
+    --shadow:0 24px 50px -28px rgba(20,40,35,.35);
+    --edge:inset 0 1px 0 rgba(255,255,255,.8);
   }
-  @media (prefers-color-scheme:dark){
-    :root{
-      --bg:#0e1116; --panel:#171b22; --ink:#e6e9ef; --muted:#9aa4b2;
-      --line:#262c36; --accent:#7d97ff; --code:#1e242d;
-      --crit-bg:#2a1414; --crit-fg:#ff8f85; --crit-line:#5a2420;
-      --ord-bg:#2a2110; --ord-fg:#f5b955; --ord-line:#574112;
-      --skip-bg:#1c222b; --skip-fg:#9aa4b2;
-    }
-  }
-  :root[data-theme=light]{
-    --bg:#f7f8fa; --panel:#ffffff; --ink:#1a1d24; --muted:#5b6472;
-    --line:#e6e9ef; --accent:#3b5bdb; --code:#f0f2f6;
-    --crit-bg:#fdecec; --crit-fg:#b42318; --crit-line:#f2c9c4;
-    --ord-bg:#fff6e6; --ord-fg:#9a5b00; --ord-line:#f0d9ad;
-    --skip-bg:#eef1f5; --skip-fg:#5b6472;
-  }
-  :root[data-theme=dark]{
-    --bg:#0e1116; --panel:#171b22; --ink:#e6e9ef; --muted:#9aa4b2;
-    --line:#262c36; --accent:#7d97ff; --code:#1e242d;
-    --crit-bg:#2a1414; --crit-fg:#ff8f85; --crit-line:#5a2420;
-    --ord-bg:#2a2110; --ord-fg:#f5b955; --ord-line:#574112;
-    --skip-bg:#1c222b; --skip-fg:#9aa4b2;
-  }
-  *{box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%}
-  body{
-    margin:0; background:var(--bg); color:var(--ink);
-    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  }
-  .wrap{max-width:1000px; margin:0 auto; padding:32px 20px 80px}
-  header.hd{margin-bottom:22px}
-  .eyebrow{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600}
-  h1{margin:.25em 0 .1em; font-size:28px; letter-spacing:-.02em; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  .ver{font-size:12px; font-weight:600; color:var(--accent); border:1px solid var(--accent); border-radius:999px; padding:2px 9px}
-  .lede{color:var(--muted); max-width:70ch; margin:.3em 0 0}
-  .legend{display:flex; gap:16px; flex-wrap:wrap; margin:20px 0 8px; padding:14px 16px; background:var(--panel); border:1px solid var(--line); border-radius:12px}
-  .legend .item{display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--muted)}
-  .badge{font-size:11px; font-weight:700; letter-spacing:.04em; padding:2px 8px; border-radius:6px; border:1px solid transparent; white-space:nowrap}
-  .badge.crit{background:var(--crit-bg); color:var(--crit-fg); border-color:var(--crit-line)}
-  .badge.ord{background:var(--ord-bg); color:var(--ord-fg); border-color:var(--ord-line)}
-  .badge.skip{background:var(--skip-bg); color:var(--skip-fg)}
-  .search{width:100%; margin:18px 0 6px; padding:12px 14px; font-size:15px; color:var(--ink);
-    background:var(--panel); border:1px solid var(--line); border-radius:10px; outline:none}
-  .search:focus{border-color:var(--accent)}
-  .count{font-size:12.5px; color:var(--muted); margin:4px 2px 20px}
-  section{margin:26px 0}
-  h2{font-size:15px; letter-spacing:.02em; margin:0 0 10px; display:flex; align-items:center; gap:9px}
-  h2 .dot{width:8px; height:8px; border-radius:50%; background:var(--accent)}
-  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--panel)}
-  table{border-collapse:collapse; width:100%; font-size:14px}
-  th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
-  th{font-size:11.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600; background:transparent}
-  tr:last-child td{border-bottom:none}
-  td.sev{white-space:nowrap; width:1%}
-  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.8px;
-    background:var(--code); padding:1.5px 6px; border-radius:5px; white-space:nowrap}
-  .cond{color:var(--muted); font-size:13.5px}
-  ul.plain{margin:0; padding:0; list-style:none; border:1px solid var(--line); border-radius:12px; background:var(--panel); overflow:hidden}
-  ul.plain li{padding:11px 15px; border-bottom:1px solid var(--line); font-size:14px}
-  ul.plain li:last-child{border-bottom:none}
-  ul.plain li b{color:var(--ink)}
-  .note{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; padding:13px 16px; color:var(--muted); font-size:13.5px}
-  footer{margin-top:44px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px}
-  a{color:var(--accent); text-decoration:none}
-  a:hover{text-decoration:underline}
-  .hide{display:none !important}
-  @media (max-width:560px){ h1{font-size:23px} .wrap{padding:22px 14px 60px} th,td{padding:9px 10px} }
+}
+*{box-sizing:border-box}
+html,body{overflow-x:clip}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--text);font-family:var(--font);
+  font-size:16px;line-height:1.6;letter-spacing:-.003em;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    linear-gradient(to right,rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:44px 44px;
+  background-position:center top;
+}
+@media (prefers-color-scheme:light){ body{background-image:
+    linear-gradient(to right,rgba(10,40,30,.04) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(10,40,30,.04) 1px,transparent 1px);} }
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+.mono{font-family:var(--mono)}
+code{font-family:var(--mono);font-size:.86em;background:var(--code);border:1px solid var(--border);
+  padding:2px 7px;border-radius:6px;white-space:normal;overflow-wrap:anywhere;color:var(--text)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* nav */
+nav{position:sticky;top:0;z-index:40;backdrop-filter:blur(12px);
+  background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--border)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:-.02em;color:var(--text)}
+.brand:hover{text-decoration:none}
+.brand svg{width:22px;height:22px;flex:none}
+.brand .v{font-family:var(--mono);font-size:11px;color:var(--accent);border:1px solid var(--accent-dim);
+  background:var(--accent-dim);padding:1px 6px;border-radius:999px;font-weight:600}
+.nav-links{display:flex;align-items:center;gap:22px;font-size:14px}
+.nav-links a{color:var(--muted)}
+.nav-links a:hover{color:var(--text);text-decoration:none}
+.nav-cta{font-family:var(--mono);font-size:12.5px;color:var(--accent-ink)!important;background:var(--accent);
+  padding:7px 13px;border-radius:8px;font-weight:600;box-shadow:var(--edge)}
+.nav-cta:hover{filter:brightness(1.08);text-decoration:none!important}
+@media (max-width:620px){ .nav-links .hidephone{display:none} }
+
+/* hero */
+.hero{position:relative;padding:clamp(3.5rem,9vh,7rem) 0 clamp(3rem,7vh,5rem);text-align:center;overflow:clip}
+.hero::before{content:"";position:absolute;inset:-30% 0 auto 0;height:600px;z-index:-1;
+  background:radial-gradient(60% 60% at 50% 0%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 70%);
+  pointer-events:none}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;
+  letter-spacing:.02em;color:var(--muted);background:var(--surface);border:1px solid var(--border);
+  padding:6px 13px;border-radius:999px;margin-bottom:26px;box-shadow:var(--edge)}
+.eyebrow b{color:var(--accent);font-weight:600}
+h1{font-size:clamp(2.3rem,6.2vw,4.3rem);line-height:1.02;letter-spacing:-.035em;font-weight:700;
+  margin:0 auto .7rem;max-width:16ch;overflow-wrap:anywhere;min-width:0}
+h1 .dng{color:var(--danger);font-family:var(--mono);letter-spacing:-.02em;font-size:.82em;white-space:nowrap}
+.sub{font-size:clamp(1.02rem,2.1vw,1.24rem);color:var(--muted);max-width:60ch;margin:0 auto 2rem;line-height:1.55}
+.sub b{color:var(--text);font-weight:600}
+.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem}
+.btn{display:inline-flex;align-items:center;gap:9px;font-size:15px;font-weight:600;padding:12px 20px;
+  border-radius:10px;border:1px solid transparent;transition:transform .12s var(--ease),filter .12s var(--ease);cursor:pointer}
+.btn:hover{text-decoration:none}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);box-shadow:var(--edge),0 8px 24px -12px var(--accent)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:var(--surface);color:var(--text);border-color:var(--border);box-shadow:var(--edge)}
+.btn-ghost:hover{border-color:var(--faint)}
+.btn svg{width:17px;height:17px;flex:none}
+
+/* copy install line */
+.install{display:flex;align-items:stretch;gap:0;margin:0 auto 1.1rem;
+  background:var(--code);border:1px solid var(--border);border-radius:11px;box-shadow:var(--edge);overflow:hidden}
+.install code{background:none;border:none;border-radius:0;padding:13px 16px;white-space:nowrap;overflow-x:auto;
+  color:var(--text);font-size:13.5px;display:flex;align-items:center;gap:9px;min-width:0;flex:1 1 auto}
+.install code .pr{color:var(--accent);user-select:none}
+.copy{flex:none;border:none;border-left:1px solid var(--border);background:var(--surface);color:var(--muted);
+  padding:0 15px;cursor:pointer;font-family:var(--mono);font-size:12px;transition:color .12s,background .12s}
+.copy:hover{color:var(--text);background:var(--surface-2)}
+.copy.ok{color:var(--accent)}
+.trust{font-family:var(--mono);font-size:12.5px;color:var(--faint);letter-spacing:.01em}
+.trust b{color:var(--muted);font-weight:500}
+
+/* terminal demo */
+.demo{margin:clamp(2rem,5vh,3.5rem) auto 0;max-width:720px;text-align:left}
+.term{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow),var(--edge);
+  padding:20px clamp(16px,3vw,26px);font-family:var(--mono);font-size:14px;line-height:1.85;position:relative;overflow:hidden}
+.term::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(80% 120% at 50% -10%,color-mix(in srgb,var(--accent) 8%,transparent),transparent 60%)}
+.term > *{position:relative;z-index:1}
+.tline{white-space:pre-wrap;word-break:break-word}
+.tline .pr{color:var(--accent)}
+.tline .dim{color:var(--faint)}
+.danger-cmd{background:color-mix(in srgb,var(--danger) 13%,transparent);border-left:3px solid var(--danger);
+  padding:3px 10px;margin:4px 0;border-radius:0 6px 6px 0;display:block}
+.danger-cmd .cmd{color:var(--danger)}
+.shield{display:flex;align-items:flex-start;gap:11px;background:var(--accent-dim);border-left:3px solid var(--accent);
+  padding:11px 14px;border-radius:0 8px 8px 0;margin:10px 0;box-shadow:0 0 26px -8px color-mix(in srgb,var(--accent) 40%,transparent);
+  animation:pulse 4s var(--ease) infinite}
+.shield .ico{font-size:16px;line-height:1.4;flex:none}
+.shield .txt{font-size:13px;line-height:1.5}
+.shield .txt b{color:var(--accent)}
+.shield .txt .q{color:var(--text)}
+.prompt-line{margin-top:6px;color:var(--text)}
+.prompt-line .yn{color:var(--accent);font-weight:600}
+.cursor{display:inline-block;width:8px;height:1.05em;background:var(--accent);vertical-align:-2px;margin-left:3px;
+  animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@keyframes pulse{0%,100%{box-shadow:0 0 20px -10px color-mix(in srgb,var(--accent) 30%,transparent)}
+  50%{box-shadow:0 0 30px -6px color-mix(in srgb,var(--accent) 55%,transparent)}}
+
+/* generic section */
+section.band{padding:var(--sp) 0;border-top:1px solid var(--border)}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
+h2{font-size:clamp(1.7rem,4vw,2.5rem);line-height:1.08;letter-spacing:-.03em;font-weight:700;margin:0 0 .5rem;max-width:20ch;overflow-wrap:anywhere}
+.lead{font-size:clamp(1rem,2vw,1.15rem);color:var(--muted);max-width:60ch;margin:0}
+
+/* problem */
+.problem h2 .dng{color:var(--danger);font-family:var(--mono);font-size:.72em;letter-spacing:-.02em}
+.problem .lead{margin-top:1rem}
+.problem .lead b{color:var(--text)}
+
+/* coverage grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:14px;margin-top:2.6rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:18px 18px 20px;box-shadow:var(--edge);
+  transition:border-color .15s var(--ease),transform .15s var(--ease)}
+.card:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--border));transform:translateY(-2px)}
+.card h3{margin:0 0 4px;font-size:15px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card h3 .cico{color:var(--accent)}
+.card p{margin:0 0 11px;font-size:12.5px;color:var(--faint);font-family:var(--mono)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--mono);font-size:11.5px;padding:3px 8px;border-radius:6px;background:var(--code);
+  border:1px solid var(--border);color:var(--muted)}
+.chip.c{border-color:color-mix(in srgb,var(--danger) 35%,transparent);color:var(--danger);
+  background:color-mix(in srgb,var(--danger) 9%,transparent)}
+
+/* how it works */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:16px;margin-top:2.6rem;counter-reset:s}
+.step{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:22px 20px;box-shadow:var(--edge)}
+.step::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent-ink);
+  background:var(--accent);width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.step h3{margin:0 0 6px;font-size:16px;font-weight:650}
+.step p{margin:0;font-size:14px;color:var(--muted)}
+.step code{font-size:.8em}
+
+/* rules */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:1.6rem 0 .3rem;font-size:13px;color:var(--muted);align-items:center}
+.badge{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:5px}
+.badge.crit{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger);border:1px solid color-mix(in srgb,var(--danger) 34%,transparent)}
+.badge.ord{background:var(--ord-dim);color:var(--ord);border:1px solid color-mix(in srgb,var(--ord) 34%,transparent)}
+.badge.skip{background:var(--code);color:var(--faint);border:1px solid var(--border)}
+.search{width:100%;margin:16px 0 6px;padding:12px 15px;font-size:15px;color:var(--text);font-family:var(--font);
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--edge)}
+.search::placeholder{color:var(--faint)}
+.count{font-family:var(--mono);font-size:12px;color:var(--faint);margin:2px 2px 18px}
+.rulecat{margin:14px 0}
+.rulecat h3{font-size:13.5px;font-weight:650;margin:0 0 8px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.rulecat h3 .d{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:11px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:600}
+tr:last-child td{border-bottom:none}
+td.sev{white-space:nowrap;width:1%}
+td .cond{color:var(--faint);font-size:12.5px}
+td code{font-size:.82em;white-space:normal}
+
+/* FAQ */
+.faq{margin-top:2.2rem;display:grid;gap:10px}
+details{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:2px 18px;box-shadow:var(--edge)}
+details[open]{border-color:color-mix(in srgb,var(--accent) 30%,var(--border))}
+summary{cursor:pointer;padding:15px 0;font-weight:600;font-size:15.5px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--mono);color:var(--accent);font-size:20px;flex:none;transition:transform .2s}
+details[open] summary::after{transform:rotate(45deg)}
+details p{margin:0 0 16px;color:var(--muted);font-size:14.5px}
+details p code{font-size:.85em}
+
+/* final CTA */
+.final{text-align:center;background:
+   radial-gradient(70% 100% at 50% 0%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 70%),var(--surface-2);
+  border:1px solid var(--border);border-radius:20px;padding:clamp(2.6rem,6vw,4rem) 22px;margin:var(--sp) 0 0;box-shadow:var(--edge)}
+.final h2{margin:0 auto .7rem;max-width:18ch}
+.final .lead{margin:0 auto 1.8rem}
+
+/* footer */
+footer{border-top:1px solid var(--border);margin-top:var(--sp);padding:34px 0;color:var(--faint);font-size:13.5px}
+.foot-in{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center}
+.foot-in a{color:var(--muted)}
+.foot-links{display:flex;gap:18px;flex-wrap:wrap}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .cursor{opacity:1}
+}
+.hide{display:none!important}
+.install{width:100%;max-width:560px}
+@media (max-width:560px){
+  .cta-row{flex-direction:column;align-items:stretch}
+  .cta-row .btn{width:100%;justify-content:center}
+  h1 .dng{white-space:normal}
+}
+@media (max-width:400px){ .eyebrow{white-space:normal;text-align:center} .brand .v{display:none} }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="hd">
-    <div class="eyebrow">OntoShip · Claude Code plugin</div>
-    <h1>🛡️ destructive-guard <span class="ver">v0.2.1</span></h1>
-    <p class="lede">PreToolUse-хук: детектит деструктивные shell-команды и вместо глухого блока
-      поднимает подтверждение <b>y/n</b> — работает даже в <code>bypassPermissions</code>.
-      Разбор по токенам, без ложных срабатываний на <code>perform</code>/<code>transform</code>/<code>terraform</code>.
-      Ниже — полный список правил детекта.</p>
+
+<nav>
+  <div class="wrap nav-in">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 12 L82 24 V52 C82 72 68 86 50 92 C32 86 18 72 18 52 V24 Z" fill="none" stroke="#34D399" stroke-width="6" stroke-linejoin="round"/><path d="M38 50 l8 9 16-18" fill="none" stroke="#34D399" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      destructive-guard <span class="v">v0.2.1</span>
+    </a>
+    <div class="nav-links">
+      <a class="hidephone" href="#coverage">Coverage</a>
+      <a class="hidephone" href="#rules">Rules</a>
+      <a href="https://github.com/vakovalskii/ontoship">GitHub</a>
+      <a class="nav-cta" href="#install">Install</a>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <header class="hero">
+    <div class="wrap">
+      <span class="eyebrow">🛡️ Claude Code · <b>PreToolUse hook</b></span>
+      <h1>Your AI agent shouldn't be able to&nbsp;<span class="dng">rm&nbsp;-rf</span> your life.</h1>
+      <p class="sub">destructive-guard is a Claude Code hook that intercepts destructive shell commands —
+        <b>rm -rf</b>, <b>git reset --hard</b>, <b>docker prune</b>, <b>kubectl delete</b>,
+        <b>terraform destroy</b>, <b>DROP TABLE</b> — and turns them into a <b>y/N</b> confirmation.
+        Even in <b>bypassPermissions</b>.</p>
+
+      <div class="install">
+        <code id="cmd"><span class="pr">/</span>plugin install destructive-guard@ontoship</code>
+        <button class="copy" id="copy" aria-label="Copy install command">Copy</button>
+      </div>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#install">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 4v16m8-8H4" stroke-linecap="round"/></svg>
+          Add to Claude Code
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/vakovalskii/ontoship">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.48l-.01-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.35 1.11 2.92.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.35 9.35 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.8-4.57 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.59.69.48A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+          Star on GitHub
+        </a>
+      </div>
+      <p class="trust">Pure Python · zero deps · <b>zero config</b> · ~200 ms budget · macOS &amp; Linux</p>
+
+      <div class="demo">
+        <div class="term" role="img" aria-label="Terminal showing destructive-guard intercepting an rm -rf command and asking for confirmation">
+          <div class="tline"><span class="pr">➜</span> <span class="dim">~/app</span> <span class="dim"># AI agent runs, unattended…</span></div>
+          <div class="danger-cmd"><span class="pr">➜</span> <span class="cmd">rm -rf /var/data</span></div>
+          <div class="shield">
+            <span class="ico">🛡️</span>
+            <span class="txt"><b>destructive-guard intercepted</b> · CRITICAL<br>
+              <span class="q">Deletes data outside your working copy. This can't be undone.</span></span>
+          </div>
+          <div class="prompt-line">⚠️  Proceed? <span class="yn">[y/N]</span><span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
   </header>
 
-  <div class="legend">
-    <div class="item"><span class="badge crit">CRIT</span> необратимо / бьёт за пределы рабочей копии</div>
-    <div class="item"><span class="badge ord">ORD</span> локальное обратимое удаление</div>
-    <div class="item"><span class="badge skip">SKIP</span> осознанно не ловим</div>
-    <div class="item">В <code>bypassPermissions</code> спрашивается только <b>CRIT</b>; ORD проходит молча. В остальных режимах — любой детект = <code>ask</code>.</div>
+  <section class="band problem">
+    <div class="wrap">
+      <p class="kicker">The problem</p>
+      <h2>Agents move faster than you can read.</h2>
+      <p class="lead">You hand an AI coding agent the keys, walk away for coffee, and it decides the cleanest
+        fix is <code>git reset --hard</code> — or <code>DROP TABLE</code>, or <code>terraform destroy</code>.
+        In <b>bypassPermissions</b> mode there's nothing between the model and your data.
+        <b>destructive-guard puts a human back in the loop</b> — but only for the commands that can actually hurt you.</p>
+    </div>
+  </section>
+
+  <section class="band" id="coverage">
+    <div class="wrap">
+      <p class="kicker">Coverage</p>
+      <h2>40+ destructive patterns across 10 categories.</h2>
+      <p class="lead">Token-level parsing — so <code>perform</code>, <code>transform</code> and <code>terraform&nbsp;plan</code>
+        never trip it. Sees through <code>sudo</code>, <code>\rm</code>, <code>bash -c "…"</code>,
+        here-strings and <code>xargs</code>.</p>
+      <div class="grid">
+        <div class="card"><h3><span class="cico">›</span> Files &amp; disk</h3><p>irreversible removal</p>
+          <div class="chips"><span class="chip c">rm -rf</span><span class="chip">shred</span><span class="chip c">dd → /dev</span><span class="chip c">mkfs</span><span class="chip">wipefs</span></div></div>
+        <div class="card"><h3><span class="cico">›</span> git</h3><p>history you can't get back</p>
+          <div class="chips"><span class="chip c">reset --hard</span><span class="chip c">push --force</span><span class="chip c">clean -f</span><span class="chip c">branch -D</span><span class="chip c">filter-branch</span></div></div>
+        <div class="card"><h3><span class="cico">›</span> Docker</h3><p>containers &amp; volumes</p>
+          <div class="chips"><span class="chip c">volume rm</span><span class="chip c">system prune</span><span class="chip c">compose down -v</span></div></div>
+        <div class="card"><h3><span class="cico">›</span> Kubernetes &amp; IaC</h3><p>infra teardown</p>
+          <div class="chips"><span class="chip c">kubectl delete</span><span class="chip c">terraform destroy</span><span class="chip c">pulumi destroy</span></div></div>
+        <div class="card"><h3><span class="cico">›</span> Cloud</h3><p>aws · gcloud · az</p>
+          <div class="chips"><span class="chip c">s3 rb</span><span class="chip c">terminate-instances</span><span class="chip c">gcloud delete</span></div></div>
+        <div class="card"><h3><span class="cico">›</span> Databases</h3><p>SQL, Mongo &amp; Redis</p>
+          <div class="chips"><span class="chip c">DROP TABLE</span><span class="chip c">TRUNCATE</span><span class="chip c">dropDatabase()</span><span class="chip c">FLUSHALL</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <p class="kicker">How it works</p>
+      <h2>One hook. Three moves.</h2>
+      <div class="steps">
+        <div class="step"><h3>Install</h3><p>Add the plugin from the OntoShip marketplace — one command, no config, no daemon.</p></div>
+        <div class="step"><h3>It registers</h3><p>The hook binds to Claude Code's <code>PreToolUse</code> event and inspects every Bash command before it runs.</p></div>
+        <div class="step"><h3>You confirm</h3><p>Safe commands pass silently. Destructive ones raise a <code>y/N</code> + a banner — even in bypass mode. Reversible ones stay quiet there.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="rules">
+    <div class="wrap">
+      <p class="kicker">Rules reference</p>
+      <h2>Every rule, in one place.</h2>
+      <p class="lead"><b class="mono" style="color:var(--danger)">CRIT</b> = irreversible / reaches outside your repo &nbsp;·&nbsp;
+        <b class="mono" style="color:var(--ord)">ORD</b> = local &amp; reversible. In bypassPermissions only <b>CRIT</b> asks; ORD passes silently.</p>
+      <input id="q" class="search" type="search" placeholder="Filter — rm, docker, kubectl, delete, redis…" aria-label="Filter rules">
+      <div class="count" id="count"></div>
+
+      <div class="rulecat" data-cat="files disk rm dd mkfs shred">
+        <h3><span class="d"></span>Files &amp; disk</h3>
+        <div class="tablewrap"><table><thead><tr><th>Command</th><th>Condition</th><th>Sev</th></tr></thead><tbody>
+          <tr><td><code>rm</code> / <code>rm -rf</code></td><td class="cond">abs/system path, <code>~</code>, <code>*</code>, <code>..</code>, or recursive on a non-regenerable dir</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>rm -rf ./build|dist|node_modules</code></td><td class="cond">recursive only on regenerable dirs</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+          <tr><td><code>rm &lt;file&gt;</code> · <code>rmdir</code> · <code>unlink</code> · <code>truncate</code></td><td class="cond">single local target</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+          <tr><td><code>shred</code> · <code>srm</code> · <code>dropdb</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>dd of=/dev/…</code></td><td class="cond">target is a device / abs path</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>dd of=&lt;file&gt;</code></td><td class="cond">overwrite a file in cwd</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+          <tr><td><code>mkfs</code> · <code>mkfs.*</code> · <code>wipefs</code> · <code>blkdiscard</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="rulecat" data-cat="find">
+        <h3><span class="d"></span>find</h3>
+        <div class="tablewrap"><table><thead><tr><th>Pattern</th><th>Condition</th><th>Sev</th></tr></thead><tbody>
+          <tr><td><code>find … -delete</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>find … -exec rm|unlink|shred|srm|rmdir</code></td><td class="cond">also -execdir/-ok/-okdir</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="rulecat" data-cat="git">
+        <h3><span class="d"></span>git <span style="color:var(--faint);font-weight:400;font-family:var(--mono);font-size:11px">(sees through -C, -c, --git-dir)</span></h3>
+        <div class="tablewrap"><table><thead><tr><th>Subcommand</th><th>Condition</th><th>Sev</th></tr></thead><tbody>
+          <tr><td><code>git rm</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+          <tr><td><code>git clean</code></td><td class="cond">without <code>-f</code></td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+          <tr><td><code>git clean -f</code> · <code>reset --hard</code> · <code>push --force/-f</code></td><td class="cond"><code>--force-with-lease</code> is allowed</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>git branch -D</code> · <code>filter-branch</code> · <code>stash clear</code> · <code>update-ref -d</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="rulecat" data-cat="docker podman">
+        <h3><span class="d"></span>Docker / podman <span style="color:var(--faint);font-weight:400;font-family:var(--mono);font-size:11px">(sees through --context, -H)</span></h3>
+        <div class="tablewrap"><table><thead><tr><th>Pattern</th><th>Condition</th><th>Sev</th></tr></thead><tbody>
+          <tr><td><code>docker rm</code> / <code>rmi</code> · <code>(image|network|container) rm</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+          <tr><td><code>docker volume rm</code> · <code>(…) prune</code></td><td class="cond">volume/image/system/network/container/builder</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>docker[-]compose down -v</code></td><td class="cond"><code>down</code> without <code>-v</code> is allowed</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="rulecat" data-cat="kubernetes iac terraform pulumi kubectl">
+        <h3><span class="d"></span>Kubernetes &amp; IaC</h3>
+        <div class="tablewrap"><table><thead><tr><th>Pattern</th><th>Condition</th><th>Sev</th></tr></thead><tbody>
+          <tr><td><code>kubectl delete …</code></td><td class="cond">after stripping -n/--namespace/--context</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>terraform|tofu|terragrunt destroy</code></td><td class="cond">also <code>apply -destroy</code>, <code>-chdir=</code></td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>pulumi destroy</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="rulecat" data-cat="cloud aws gcloud az">
+        <h3><span class="d"></span>Cloud</h3>
+        <div class="tablewrap"><table><thead><tr><th>Pattern</th><th>Condition</th><th>Sev</th></tr></thead><tbody>
+          <tr><td><code>aws … rb</code> / <code>delete-*</code> / <code>terminate-*</code> / <code>remove-*</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>aws s3 rm --recursive</code></td><td class="cond">single object = ORD</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>gcloud … delete</code> · <code>az … delete</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="rulecat" data-cat="databases sql nosql redis mongo psql mysql">
+        <h3><span class="d"></span>Databases <span style="color:var(--faint);font-weight:400;font-family:var(--mono);font-size:11px">(needs a db client: psql, mysql, mongosh, sqlite3…)</span></h3>
+        <div class="tablewrap"><table><thead><tr><th>Pattern</th><th>Condition</th><th>Sev</th></tr></thead><tbody>
+          <tr><td>SQL <code>DROP TABLE|DATABASE|SCHEMA</code> · <code>TRUNCATE</code> · <code>DELETE FROM</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td>Mongo <code>dropDatabase()</code> · <code>.drop()</code> · <code>deleteMany()</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>redis-cli</code>/<code>valkey-cli</code> <code>FLUSHALL</code>/<code>FLUSHDB</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <div class="rulecat" data-cat="misc crontab bypass unwrap not caught">
+        <h3><span class="d"></span>Misc &amp; unwrapping</h3>
+        <div class="tablewrap"><table><thead><tr><th>Pattern</th><th>Note</th><th>Sev</th></tr></thead><tbody>
+          <tr><td><code>crontab -r</code></td><td class="cond">wipes the user's crontab</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td>Unwraps <code>sudo</code> · <code>\rm</code> · <code>bash -c "…"</code> · <code>&lt;&lt;&lt;</code> · <code>xargs</code></td><td class="cond">recursive, depth ≤4</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+          <tr><td><code>&gt;</code> redirects · <code>compose down</code> · <code>push --force-with-lease</code> · <code>python x.py</code></td><td class="cond">deliberately not flagged (signal-to-noise)</td><td class="sev"><span class="badge skip">SKIP</span></td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <p class="kicker">FAQ</p>
+      <h2>Questions before you install.</h2>
+      <div class="faq">
+        <details><summary>Does it slow me down?</summary><p>No. Safe commands pass silently — you only see a prompt on genuinely destructive ones. Parsing runs under a ~200&nbsp;ms budget and <b>fails open</b>: if anything hangs, the command proceeds rather than blocking your workflow (flip <code>NDG_FAIL_CLOSED=1</code> to invert).</p></details>
+        <details><summary>Won't it flag every <code>rm</code> and <code>terraform</code>?</summary><p>No — it parses by token. <code>terraform plan</code>, <code>transform</code>, <code>perform</code>, <code>rm ./build</code> stay quiet. It tiers severity: reversible local deletes are <b>ORD</b> and pass silently in bypass mode; only irreversible <b>CRIT</b> commands raise a prompt.</p></details>
+        <details><summary>Does it really work in bypassPermissions?</summary><p>Yes — that's the point. An explicit <code>ask</code> from the hook survives bypass, so even a fully-autonomous agent gets stopped at a <code>DROP TABLE</code>. Reversible commands still pass silently there so you're not spammed.</p></details>
+        <details><summary>Can I customize what it catches?</summary><p>It's a single readable Python file, stdlib-only. Tune behaviour with env vars — <code>NDG_NOTIFY</code>, <code>NDG_SOUND</code>, <code>NDG_TIMEOUT_MS</code>, <code>NDG_FAIL_CLOSED</code> — or edit the rule sets directly. Dry-run any command with <code>--test</code>.</p></details>
+        <details><summary>What about the macOS banner &amp; sound?</summary><p>On a detect you get a system sound + banner via <code>osascript</code> (always reliable). Want the banner click to focus your terminal instead of Script Editor? Opt in with <code>brew install terminal-notifier</code> + <code>NDG_NOTIFIER=terminal-notifier</code>.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <div class="final">
+        <p class="kicker" style="justify-content:center">Install</p>
+        <h2>Put a y/N between your agent and a very bad day.</h2>
+        <p class="lead">Two lines in Claude Code. No account, no service, no telemetry.</p>
+        <div class="install" style="margin-bottom:1.4rem">
+          <code id="cmd2"><span class="pr">/</span>plugin marketplace add vakovalskii/ontoship<br><span class="pr">/</span>plugin install destructive-guard@ontoship</code>
+          <button class="copy" id="copy2" aria-label="Copy install commands">Copy</button>
+        </div>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/vakovalskii/ontoship">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.48l-.01-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.35 1.11 2.92.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.35 9.35 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.8-4.57 5.06.36.32.68.94.68 1.9l-.01 2.82c0 .27.18.59.69.48A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/></svg>
+            View on GitHub
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/vakovalskii/ontoship/blob/main/destructive-guard/README.md">Read the docs</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>OntoShip · <b style="color:var(--muted)">destructive-guard</b> v0.2.1 · MIT</span>
+    <div class="foot-links">
+      <a href="https://github.com/vakovalskii/ontoship">GitHub</a>
+      <a href="https://github.com/vakovalskii/ontoship/blob/main/destructive-guard/README.md">Docs</a>
+      <a href="#rules">Rules</a>
+      <a href="#top">Top ↑</a>
+    </div>
   </div>
-
-  <input id="q" class="search" type="search" placeholder="Фильтр по команде или условию — напр. rm, docker, kubectl, delete…" aria-label="Фильтр правил">
-  <div class="count" id="count"></div>
-
-  <section data-cat="Файлы и удаление">
-    <h2><span class="dot"></span>Файлы и удаление</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Команда</th><th>Условие</th><th>Severity</th></tr></thead>
-      <tbody>
-        <tr><td><code>rm</code></td><td class="cond">цель <code>/</code>, <code>~</code>, <code>*</code>, <code>.</code>, <code>..</code>, абс./<code>$</code>-путь; есть <code>*</code> или <code>..</code></td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>rm -r/-rf</code></td><td class="cond">рекурсия по не-регенерируемому каталогу</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>rm -rf ./build|dist|node_modules|…</code></td><td class="cond">рекурсия только по регенер-каталогам (.next, target, coverage, .cache, __pycache__, .turbo…)</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
-        <tr><td><code>rm &lt;file&gt;</code></td><td class="cond">одиночный файл без опасной цели</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
-        <tr><td><code>rmdir</code> · <code>unlink</code> · <code>truncate</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
-        <tr><td><code>shred</code> · <code>srm</code> · <code>dropdb</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section data-cat="find">
-    <h2><span class="dot"></span>find</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
-      <tbody>
-        <tr><td><code>find … -delete</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>find … -exec|-execdir|-ok|-okdir rm|unlink|shred|srm|rmdir</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section data-cat="git">
-    <h2><span class="dot"></span>git <span style="font-weight:400;color:var(--muted);font-size:12.5px">(учитываются глоб. опции <code>-C</code>, <code>-c</code>, <code>--git-dir</code>, <code>--work-tree</code>…)</span></h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Субкоманда</th><th>Условие</th><th>Severity</th></tr></thead>
-      <tbody>
-        <tr><td><code>git rm</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
-        <tr><td><code>git clean</code></td><td class="cond">без <code>-f</code></td><td class="sev"><span class="badge ord">ORD</span></td></tr>
-        <tr><td><code>git clean -f/--force</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>git reset --hard</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>git push --force/-f/+refspec</code></td><td class="cond"><code>--force-with-lease</code> — не ловим</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>git branch -D</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>git filter-branch</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>git stash clear</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>git update-ref -d</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section data-cat="docker podman">
-    <h2><span class="dot"></span>docker / podman <span style="font-weight:400;color:var(--muted);font-size:12.5px">(учитываются <code>--context</code>, <code>-H</code>, <code>--host</code>…)</span></h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
-      <tbody>
-        <tr><td><code>docker rm</code> / <code>rmi</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
-        <tr><td><code>docker (image|network|container) rm</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
-        <tr><td><code>docker volume rm</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>docker (volume|image|system|network|container|builder) prune</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>docker compose down -v/--volumes</code></td><td class="cond"><code>down</code> без <code>-v</code> — не ловим</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>docker-compose down -v/--volumes</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section data-cat="Диск файловая система dd mkfs">
-    <h2><span class="dot"></span>Диск / файловая система</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Команда</th><th>Условие</th><th>Severity</th></tr></thead>
-      <tbody>
-        <tr><td><code>dd</code></td><td class="cond"><code>of=/dev/…</code>, абс.путь, <code>~</code>, <code>$</code>, <code>disk</code>/<code>rdisk</code></td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>dd</code></td><td class="cond"><code>of=&lt;файл в cwd&gt;</code></td><td class="sev"><span class="badge ord">ORD</span></td></tr>
-        <tr><td><code>dd</code></td><td class="cond">без <code>of=</code> (чтение)</td><td class="sev"><span class="badge skip">SKIP</span></td></tr>
-        <tr><td><code>mkfs</code> · <code>mkfs.*</code> · <code>wipefs</code> · <code>blkdiscard</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section data-cat="Kubernetes IaC terraform pulumi">
-    <h2><span class="dot"></span>Kubernetes / IaC</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
-      <tbody>
-        <tr><td><code>kubectl delete …</code></td><td class="cond">после снятия <code>-n</code>/<code>--namespace</code>/<code>--context</code>…</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>terraform|tofu|terragrunt destroy</code></td><td class="cond">и <code>apply -destroy</code>; учит. <code>-chdir=</code></td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>pulumi destroy</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section data-cat="Cloud aws gcloud az">
-    <h2><span class="dot"></span>Cloud</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
-      <tbody>
-        <tr><td><code>aws … rb</code> / <code>delete-*</code> / <code>terminate-*</code> / <code>remove-*</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>aws s3 rm --recursive</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>aws s3 rm &lt;один объект&gt;</code></td><td class="cond">без <code>--recursive</code></td><td class="sev"><span class="badge ord">ORD</span></td></tr>
-        <tr><td><code>gcloud … delete</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>az … delete</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section data-cat="БД SQL NoSQL redis mongo psql mysql">
-    <h2><span class="dot"></span>Базы данных <span style="font-weight:400;color:var(--muted);font-size:12.5px">(нужен db-клиент: psql, mysql, mariadb, mongosh, mongo, clickhouse, sqlite3, dropdb)</span></h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
-      <tbody>
-        <tr><td>SQL <code>DROP TABLE|DATABASE|SCHEMA</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td>SQL <code>TRUNCATE</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td>SQL <code>DELETE FROM</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td>Mongo <code>dropDatabase(</code> / <code>.drop(</code> / <code>deleteMany(</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-        <tr><td><code>redis-cli</code>/<code>valkey-cli</code> <code>FLUSHALL</code>/<code>FLUSHDB</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section data-cat="Прочее crontab">
-    <h2><span class="dot"></span>Прочее</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Команда</th><th>Условие</th><th>Severity</th></tr></thead>
-      <tbody>
-        <tr><td><code>crontab -r</code></td><td class="cond">любой флаг, содержащий <code>r</code></td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section data-cat="Разворачивание обходы bypass xargs heredoc">
-    <h2><span class="dot"></span>Разворачивание и обходы <span style="font-weight:400;color:var(--muted);font-size:12.5px">(рекурсивный разбор, глубина ≤4)</span></h2>
-    <ul class="plain">
-      <li>Снимаются <b>префиксы</b>: <code>sudo command time env nohup builtin exec then do else { ( !</code></li>
-      <li>Пропускаются <b>присваивания</b> <code>FOO=bar …</code></li>
-      <li><code>\rm</code> → снимается ведущий backslash-эскейп</li>
-      <li><code>bash/sh/zsh/dash/ash/ksh/fish -c "…"</code> → строка разбирается рекурсивно</li>
-      <li><code>bash &lt;&lt;&lt; "…"</code> (here-string) → разбирается рекурсивно</li>
-      <li><code>… | xargs CMD</code> → разбирается команда, которую запускает xargs</li>
-      <li><b>Сегментация</b> по <code>; &amp;&amp; || | &amp; ( ) ` \n</code> — многострочный heredoc-body ловится как отдельные строки</li>
-    </ul>
-  </section>
-
-  <section data-cat="Не ловим skip осознанно">
-    <h2><span class="dot"></span>Не ловим (осознанно)</h2>
-    <ul class="plain">
-      <li><code>&gt;</code> редиректы · <code>docker compose down</code> без <code>-v</code> · <code>git push --force-with-lease</code></li>
-      <li>Запуск интерпретатора над файлом: <code>python x.py</code>, <code>bash x.sh</code>, <code>psql -f f.sql</code></li>
-      <li>Деструктив внутри самих скриптов/файлов — чтобы не флажить любой запуск интерпретатора (это убило бы signal-to-noise)</li>
-    </ul>
-  </section>
-
-  <section data-cat="Настройки env переменные">
-    <h2><span class="dot"></span>Настройки (env)</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>Переменная</th><th>Дефолт</th><th>Что делает</th></tr></thead>
-      <tbody>
-        <tr><td><code>NDG_NOTIFY</code></td><td><code>1</code></td><td class="cond"><code>0</code> — выключить звук/баннер</td></tr>
-        <tr><td><code>NDG_NOTIFIER</code></td><td><code>osascript</code></td><td class="cond"><code>terminal-notifier</code> — клик-в-терминал (нужен бинарь + разрешение в System Settings)</td></tr>
-        <tr><td><code>NDG_SOUND</code></td><td><code>Funk</code></td><td class="cond">системный звук macOS</td></tr>
-        <tr><td><code>NDG_TERM_BUNDLE</code></td><td>—</td><td class="cond">bundle-id терминала (только при <code>NDG_NOTIFIER=terminal-notifier</code>)</td></tr>
-        <tr><td><code>NDG_TIMEOUT_MS</code></td><td><code>200</code></td><td class="cond">внутренний лимит на разбор команды</td></tr>
-        <tr><td><code>NDG_FAIL_CLOSED</code></td><td><code>0</code></td><td class="cond"><code>1</code> — при сбое/таймауте спрашивать (дефолт: fail-open)</td></tr>
-        <tr><td><code>NDG_LOG</code></td><td>—</td><td class="cond">путь для лога; либо <code>touch ~/.claude/ndg-debug</code> → <code>~/.claude/ndg-debug.log</code></td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <div class="note">
-    Dry-run без исполнения хука: <code>python3 hooks/confirm-destructive.py --test "rm -rf /var/data"</code>
-    (код выхода 0=proceed, 1=ask). Тест уведомления: <code>--test-notify</code>.
-  </div>
-
-  <footer>
-    <span>OntoShip · destructive-guard v0.2.1</span>
-    <span><a href="https://github.com/vakovalskii/ontoship">github.com/vakovalskii/ontoship</a></span>
-  </footer>
-</div>
+</footer>
 
 <script>
+// copy buttons
+function wireCopy(btnId, cmdId){
+  var b=document.getElementById(btnId), c=document.getElementById(cmdId);
+  if(!b||!c) return;
+  b.addEventListener('click', function(){
+    var t=c.innerText.replace(/​/g,'').trim();
+    navigator.clipboard.writeText(t).then(function(){
+      var o=b.textContent; b.textContent='✓ Copied'; b.classList.add('ok');
+      setTimeout(function(){b.textContent=o;b.classList.remove('ok')},1600);
+    });
+  });
+}
+wireCopy('copy','cmd'); wireCopy('copy2','cmd2');
+
+// rules filter
 (function(){
   var q=document.getElementById('q'), count=document.getElementById('count');
-  var sections=[].slice.call(document.querySelectorAll('section'));
-  var rows=[].slice.call(document.querySelectorAll('tbody tr, ul.plain li'));
-  function total(){return rows.length;}
+  if(!q) return;
+  var cats=[].slice.call(document.querySelectorAll('.rulecat'));
+  var rows=[].slice.call(document.querySelectorAll('.rulecat tbody tr'));
   function apply(){
-    var t=q.value.trim().toLowerCase();
-    var shown=0;
+    var t=q.value.trim().toLowerCase(), shown=0;
     rows.forEach(function(r){
-      var hit = !t || r.textContent.toLowerCase().indexOf(t)>-1
-                || (r.closest('section')&&r.closest('section').getAttribute('data-cat').toLowerCase().indexOf(t)>-1);
-      r.classList.toggle('hide', !hit);
-      if(hit) shown++;
+      var cat=r.closest('.rulecat').getAttribute('data-cat')||'';
+      var hit=!t||r.textContent.toLowerCase().indexOf(t)>-1||cat.indexOf(t)>-1;
+      r.classList.toggle('hide',!hit); if(hit)shown++;
     });
-    sections.forEach(function(s){
-      var vis=s.querySelectorAll('tbody tr:not(.hide), ul.plain li:not(.hide)').length;
-      var hasRows=s.querySelectorAll('tbody tr, ul.plain li').length>0;
-      s.classList.toggle('hide', hasRows && vis===0);
+    cats.forEach(function(c){
+      var vis=c.querySelectorAll('tbody tr:not(.hide)').length;
+      c.classList.toggle('hide',vis===0);
     });
-    count.textContent = t ? (shown+' совпад. из '+total()) : (total()+' правил');
+    count.textContent=t?(shown+' of '+rows.length+' rules'):(rows.length+' rules · 10 categories');
   }
-  q.addEventListener('input', apply);
-  apply();
+  q.addEventListener('input',apply); apply();
 })();
 </script>
 </body>
