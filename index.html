@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>destructive-guard — справочник правил</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --ink:#1a1d24; --muted:#5b6472;
+    --line:#e6e9ef; --accent:#3b5bdb; --code:#f0f2f6;
+    --crit-bg:#fdecec; --crit-fg:#b42318; --crit-line:#f2c9c4;
+    --ord-bg:#fff6e6; --ord-fg:#9a5b00; --ord-line:#f0d9ad;
+    --skip-bg:#eef1f5; --skip-fg:#5b6472;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1116; --panel:#171b22; --ink:#e6e9ef; --muted:#9aa4b2;
+      --line:#262c36; --accent:#7d97ff; --code:#1e242d;
+      --crit-bg:#2a1414; --crit-fg:#ff8f85; --crit-line:#5a2420;
+      --ord-bg:#2a2110; --ord-fg:#f5b955; --ord-line:#574112;
+      --skip-bg:#1c222b; --skip-fg:#9aa4b2;
+    }
+  }
+  :root[data-theme=light]{
+    --bg:#f7f8fa; --panel:#ffffff; --ink:#1a1d24; --muted:#5b6472;
+    --line:#e6e9ef; --accent:#3b5bdb; --code:#f0f2f6;
+    --crit-bg:#fdecec; --crit-fg:#b42318; --crit-line:#f2c9c4;
+    --ord-bg:#fff6e6; --ord-fg:#9a5b00; --ord-line:#f0d9ad;
+    --skip-bg:#eef1f5; --skip-fg:#5b6472;
+  }
+  :root[data-theme=dark]{
+    --bg:#0e1116; --panel:#171b22; --ink:#e6e9ef; --muted:#9aa4b2;
+    --line:#262c36; --accent:#7d97ff; --code:#1e242d;
+    --crit-bg:#2a1414; --crit-fg:#ff8f85; --crit-line:#5a2420;
+    --ord-bg:#2a2110; --ord-fg:#f5b955; --ord-line:#574112;
+    --skip-bg:#1c222b; --skip-fg:#9aa4b2;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1000px; margin:0 auto; padding:32px 20px 80px}
+  header.hd{margin-bottom:22px}
+  .eyebrow{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  h1{margin:.25em 0 .1em; font-size:28px; letter-spacing:-.02em; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .ver{font-size:12px; font-weight:600; color:var(--accent); border:1px solid var(--accent); border-radius:999px; padding:2px 9px}
+  .lede{color:var(--muted); max-width:70ch; margin:.3em 0 0}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; margin:20px 0 8px; padding:14px 16px; background:var(--panel); border:1px solid var(--line); border-radius:12px}
+  .legend .item{display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--muted)}
+  .badge{font-size:11px; font-weight:700; letter-spacing:.04em; padding:2px 8px; border-radius:6px; border:1px solid transparent; white-space:nowrap}
+  .badge.crit{background:var(--crit-bg); color:var(--crit-fg); border-color:var(--crit-line)}
+  .badge.ord{background:var(--ord-bg); color:var(--ord-fg); border-color:var(--ord-line)}
+  .badge.skip{background:var(--skip-bg); color:var(--skip-fg)}
+  .search{width:100%; margin:18px 0 6px; padding:12px 14px; font-size:15px; color:var(--ink);
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; outline:none}
+  .search:focus{border-color:var(--accent)}
+  .count{font-size:12.5px; color:var(--muted); margin:4px 2px 20px}
+  section{margin:26px 0}
+  h2{font-size:15px; letter-spacing:.02em; margin:0 0 10px; display:flex; align-items:center; gap:9px}
+  h2 .dot{width:8px; height:8px; border-radius:50%; background:var(--accent)}
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--panel)}
+  table{border-collapse:collapse; width:100%; font-size:14px}
+  th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font-size:11.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600; background:transparent}
+  tr:last-child td{border-bottom:none}
+  td.sev{white-space:nowrap; width:1%}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.8px;
+    background:var(--code); padding:1.5px 6px; border-radius:5px; white-space:nowrap}
+  .cond{color:var(--muted); font-size:13.5px}
+  ul.plain{margin:0; padding:0; list-style:none; border:1px solid var(--line); border-radius:12px; background:var(--panel); overflow:hidden}
+  ul.plain li{padding:11px 15px; border-bottom:1px solid var(--line); font-size:14px}
+  ul.plain li:last-child{border-bottom:none}
+  ul.plain li b{color:var(--ink)}
+  .note{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; padding:13px 16px; color:var(--muted); font-size:13.5px}
+  footer{margin-top:44px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px}
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .hide{display:none !important}
+  @media (max-width:560px){ h1{font-size:23px} .wrap{padding:22px 14px 60px} th,td{padding:9px 10px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hd">
+    <div class="eyebrow">OntoShip · Claude Code plugin</div>
+    <h1>🛡️ destructive-guard <span class="ver">v0.2.1</span></h1>
+    <p class="lede">PreToolUse-хук: детектит деструктивные shell-команды и вместо глухого блока
+      поднимает подтверждение <b>y/n</b> — работает даже в <code>bypassPermissions</code>.
+      Разбор по токенам, без ложных срабатываний на <code>perform</code>/<code>transform</code>/<code>terraform</code>.
+      Ниже — полный список правил детекта.</p>
+  </header>
+
+  <div class="legend">
+    <div class="item"><span class="badge crit">CRIT</span> необратимо / бьёт за пределы рабочей копии</div>
+    <div class="item"><span class="badge ord">ORD</span> локальное обратимое удаление</div>
+    <div class="item"><span class="badge skip">SKIP</span> осознанно не ловим</div>
+    <div class="item">В <code>bypassPermissions</code> спрашивается только <b>CRIT</b>; ORD проходит молча. В остальных режимах — любой детект = <code>ask</code>.</div>
+  </div>
+
+  <input id="q" class="search" type="search" placeholder="Фильтр по команде или условию — напр. rm, docker, kubectl, delete…" aria-label="Фильтр правил">
+  <div class="count" id="count"></div>
+
+  <section data-cat="Файлы и удаление">
+    <h2><span class="dot"></span>Файлы и удаление</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Команда</th><th>Условие</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td><code>rm</code></td><td class="cond">цель <code>/</code>, <code>~</code>, <code>*</code>, <code>.</code>, <code>..</code>, абс./<code>$</code>-путь; есть <code>*</code> или <code>..</code></td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>rm -r/-rf</code></td><td class="cond">рекурсия по не-регенерируемому каталогу</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>rm -rf ./build|dist|node_modules|…</code></td><td class="cond">рекурсия только по регенер-каталогам (.next, target, coverage, .cache, __pycache__, .turbo…)</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+        <tr><td><code>rm &lt;file&gt;</code></td><td class="cond">одиночный файл без опасной цели</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+        <tr><td><code>rmdir</code> · <code>unlink</code> · <code>truncate</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+        <tr><td><code>shred</code> · <code>srm</code> · <code>dropdb</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section data-cat="find">
+    <h2><span class="dot"></span>find</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td><code>find … -delete</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>find … -exec|-execdir|-ok|-okdir rm|unlink|shred|srm|rmdir</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section data-cat="git">
+    <h2><span class="dot"></span>git <span style="font-weight:400;color:var(--muted);font-size:12.5px">(учитываются глоб. опции <code>-C</code>, <code>-c</code>, <code>--git-dir</code>, <code>--work-tree</code>…)</span></h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Субкоманда</th><th>Условие</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td><code>git rm</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+        <tr><td><code>git clean</code></td><td class="cond">без <code>-f</code></td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+        <tr><td><code>git clean -f/--force</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>git reset --hard</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>git push --force/-f/+refspec</code></td><td class="cond"><code>--force-with-lease</code> — не ловим</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>git branch -D</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>git filter-branch</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>git stash clear</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>git update-ref -d</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section data-cat="docker podman">
+    <h2><span class="dot"></span>docker / podman <span style="font-weight:400;color:var(--muted);font-size:12.5px">(учитываются <code>--context</code>, <code>-H</code>, <code>--host</code>…)</span></h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td><code>docker rm</code> / <code>rmi</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+        <tr><td><code>docker (image|network|container) rm</code></td><td class="cond">—</td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+        <tr><td><code>docker volume rm</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>docker (volume|image|system|network|container|builder) prune</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>docker compose down -v/--volumes</code></td><td class="cond"><code>down</code> без <code>-v</code> — не ловим</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>docker-compose down -v/--volumes</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section data-cat="Диск файловая система dd mkfs">
+    <h2><span class="dot"></span>Диск / файловая система</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Команда</th><th>Условие</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td><code>dd</code></td><td class="cond"><code>of=/dev/…</code>, абс.путь, <code>~</code>, <code>$</code>, <code>disk</code>/<code>rdisk</code></td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>dd</code></td><td class="cond"><code>of=&lt;файл в cwd&gt;</code></td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+        <tr><td><code>dd</code></td><td class="cond">без <code>of=</code> (чтение)</td><td class="sev"><span class="badge skip">SKIP</span></td></tr>
+        <tr><td><code>mkfs</code> · <code>mkfs.*</code> · <code>wipefs</code> · <code>blkdiscard</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section data-cat="Kubernetes IaC terraform pulumi">
+    <h2><span class="dot"></span>Kubernetes / IaC</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td><code>kubectl delete …</code></td><td class="cond">после снятия <code>-n</code>/<code>--namespace</code>/<code>--context</code>…</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>terraform|tofu|terragrunt destroy</code></td><td class="cond">и <code>apply -destroy</code>; учит. <code>-chdir=</code></td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>pulumi destroy</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section data-cat="Cloud aws gcloud az">
+    <h2><span class="dot"></span>Cloud</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td><code>aws … rb</code> / <code>delete-*</code> / <code>terminate-*</code> / <code>remove-*</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>aws s3 rm --recursive</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>aws s3 rm &lt;один объект&gt;</code></td><td class="cond">без <code>--recursive</code></td><td class="sev"><span class="badge ord">ORD</span></td></tr>
+        <tr><td><code>gcloud … delete</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>az … delete</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section data-cat="БД SQL NoSQL redis mongo psql mysql">
+    <h2><span class="dot"></span>Базы данных <span style="font-weight:400;color:var(--muted);font-size:12.5px">(нужен db-клиент: psql, mysql, mariadb, mongosh, mongo, clickhouse, sqlite3, dropdb)</span></h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Паттерн</th><th>Условие</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td>SQL <code>DROP TABLE|DATABASE|SCHEMA</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td>SQL <code>TRUNCATE</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td>SQL <code>DELETE FROM</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td>Mongo <code>dropDatabase(</code> / <code>.drop(</code> / <code>deleteMany(</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+        <tr><td><code>redis-cli</code>/<code>valkey-cli</code> <code>FLUSHALL</code>/<code>FLUSHDB</code></td><td class="cond">—</td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section data-cat="Прочее crontab">
+    <h2><span class="dot"></span>Прочее</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Команда</th><th>Условие</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td><code>crontab -r</code></td><td class="cond">любой флаг, содержащий <code>r</code></td><td class="sev"><span class="badge crit">CRIT</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section data-cat="Разворачивание обходы bypass xargs heredoc">
+    <h2><span class="dot"></span>Разворачивание и обходы <span style="font-weight:400;color:var(--muted);font-size:12.5px">(рекурсивный разбор, глубина ≤4)</span></h2>
+    <ul class="plain">
+      <li>Снимаются <b>префиксы</b>: <code>sudo command time env nohup builtin exec then do else { ( !</code></li>
+      <li>Пропускаются <b>присваивания</b> <code>FOO=bar …</code></li>
+      <li><code>\rm</code> → снимается ведущий backslash-эскейп</li>
+      <li><code>bash/sh/zsh/dash/ash/ksh/fish -c "…"</code> → строка разбирается рекурсивно</li>
+      <li><code>bash &lt;&lt;&lt; "…"</code> (here-string) → разбирается рекурсивно</li>
+      <li><code>… | xargs CMD</code> → разбирается команда, которую запускает xargs</li>
+      <li><b>Сегментация</b> по <code>; &amp;&amp; || | &amp; ( ) ` \n</code> — многострочный heredoc-body ловится как отдельные строки</li>
+    </ul>
+  </section>
+
+  <section data-cat="Не ловим skip осознанно">
+    <h2><span class="dot"></span>Не ловим (осознанно)</h2>
+    <ul class="plain">
+      <li><code>&gt;</code> редиректы · <code>docker compose down</code> без <code>-v</code> · <code>git push --force-with-lease</code></li>
+      <li>Запуск интерпретатора над файлом: <code>python x.py</code>, <code>bash x.sh</code>, <code>psql -f f.sql</code></li>
+      <li>Деструктив внутри самих скриптов/файлов — чтобы не флажить любой запуск интерпретатора (это убило бы signal-to-noise)</li>
+    </ul>
+  </section>
+
+  <section data-cat="Настройки env переменные">
+    <h2><span class="dot"></span>Настройки (env)</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Переменная</th><th>Дефолт</th><th>Что делает</th></tr></thead>
+      <tbody>
+        <tr><td><code>NDG_NOTIFY</code></td><td><code>1</code></td><td class="cond"><code>0</code> — выключить звук/баннер</td></tr>
+        <tr><td><code>NDG_NOTIFIER</code></td><td><code>osascript</code></td><td class="cond"><code>terminal-notifier</code> — клик-в-терминал (нужен бинарь + разрешение в System Settings)</td></tr>
+        <tr><td><code>NDG_SOUND</code></td><td><code>Funk</code></td><td class="cond">системный звук macOS</td></tr>
+        <tr><td><code>NDG_TERM_BUNDLE</code></td><td>—</td><td class="cond">bundle-id терминала (только при <code>NDG_NOTIFIER=terminal-notifier</code>)</td></tr>
+        <tr><td><code>NDG_TIMEOUT_MS</code></td><td><code>200</code></td><td class="cond">внутренний лимит на разбор команды</td></tr>
+        <tr><td><code>NDG_FAIL_CLOSED</code></td><td><code>0</code></td><td class="cond"><code>1</code> — при сбое/таймауте спрашивать (дефолт: fail-open)</td></tr>
+        <tr><td><code>NDG_LOG</code></td><td>—</td><td class="cond">путь для лога; либо <code>touch ~/.claude/ndg-debug</code> → <code>~/.claude/ndg-debug.log</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <div class="note">
+    Dry-run без исполнения хука: <code>python3 hooks/confirm-destructive.py --test "rm -rf /var/data"</code>
+    (код выхода 0=proceed, 1=ask). Тест уведомления: <code>--test-notify</code>.
+  </div>
+
+  <footer>
+    <span>OntoShip · destructive-guard v0.2.1</span>
+    <span><a href="https://github.com/vakovalskii/ontoship">github.com/vakovalskii/ontoship</a></span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var q=document.getElementById('q'), count=document.getElementById('count');
+  var sections=[].slice.call(document.querySelectorAll('section'));
+  var rows=[].slice.call(document.querySelectorAll('tbody tr, ul.plain li'));
+  function total(){return rows.length;}
+  function apply(){
+    var t=q.value.trim().toLowerCase();
+    var shown=0;
+    rows.forEach(function(r){
+      var hit = !t || r.textContent.toLowerCase().indexOf(t)>-1
+                || (r.closest('section')&&r.closest('section').getAttribute('data-cat').toLowerCase().indexOf(t)>-1);
+      r.classList.toggle('hide', !hit);
+      if(hit) shown++;
+    });
+    sections.forEach(function(s){
+      var vis=s.querySelectorAll('tbody tr:not(.hide), ul.plain li:not(.hide)').length;
+      var hasRows=s.querySelectorAll('tbody tr, ul.plain li').length>0;
+      s.classList.toggle('hide', hasRows && vis===0);
+    });
+    count.textContent = t ? (shown+' совпад. из '+total()) : (total()+' правил');
+  }
+  q.addEventListener('input', apply);
+  apply();
+})();
+</script>
+</body>
+</html>
