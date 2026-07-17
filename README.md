@@ -45,7 +45,9 @@ right file instead of grepping blind.
 | `lint` | *(optional)* ontology checks: broken links, frontmatter, folder READMEs |
 | `version` | — |
 
-OntoShip ships as a Claude Code **marketplace with two plugins** — `gitmark` (KB + dev-flow) and `destructive-guard` (safety hook).
+OntoShip ships the **`gitmark`** plugin (KB + dev-flow) as a Claude Code marketplace.
+(The **`destructive-guard`** safety hook now lives in its own repo →
+[vakovalskii/destructive-guard](https://github.com/vakovalskii/destructive-guard).)
 
 **`gitmark`** — three skills and five commands:
 
@@ -96,17 +98,11 @@ name the target service/file if you know it.
 - Weak: `/ship fix search` → the agent has to guess the goal and the done-criteria.
 - Add "deploy it" / "don't deploy" if you want to control the last step.
 
-**`destructive-guard`** — a `PreToolUse` Bash hook that intercepts destructive commands
-(`rm`, `git reset --hard`, `docker rm -v`, SQL `DROP/TRUNCATE`) and forces a y/n
-confirmation **even in bypassPermissions**, with sound + a macOS banner. Token-level
-parsing — no false positives on `perform`/`transform`/`terraform`. See
-[`destructive-guard/README.md`](destructive-guard/README.md) and the interactive
-[**rules reference**](https://vakovalskii.github.io/ontoship/).
-
-> The banner uses `osascript` by default (always shown). To make **clicking it focus your
-> terminal** (iTerm2/Terminal/VS Code) instead of Script Editor, opt in with
-> `brew install terminal-notifier` + `NDG_NOTIFIER=terminal-notifier` — note macOS may
-> require granting terminal-notifier notification permission first.
+> **Looking for `destructive-guard`?** The `PreToolUse` safety hook that intercepts
+> destructive commands (`rm -rf`, `git reset --hard`, `terraform destroy`, `DROP TABLE`…)
+> and turns them into a y/n confirmation has moved to its own repo:
+> **[github.com/vakovalskii/destructive-guard](https://github.com/vakovalskii/destructive-guard)**
+> · [landing + rules reference](https://vakovalskii.github.io/destructive-guard/).
 
 ## Quickstart
 
@@ -125,7 +121,6 @@ fuzzy/substring/non-Latin matching — detected automatically, degrades graceful
 ```text
 /plugin marketplace add vakovalskii/ontoship
 /plugin install gitmark@ontoship
-/plugin install destructive-guard@ontoship   # optional: the safety hook
 ```
 
 Or just copy `skills/` and `commands/` into your repo's `.claude/` — project-local, no

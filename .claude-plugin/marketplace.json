@@ -9,11 +9,6 @@
       "name": "gitmark",
       "source": ".",
       "description": "md+README+git knowledge base: FTS5 search (bm25 + trigram/fuzzy), HTML+graph generation, code-ontology linter."
-    },
-    {
-      "name": "destructive-guard",
-      "source": "./destructive-guard",
-      "description": "Деструктив-гард: детект rm/git/docker/SQL-DROP → подтверждение y/n (даже в bypassPermissions) + звук/баннер."
     }
   ]
 }

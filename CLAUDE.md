@@ -1,11 +1,11 @@
 # OntoShip — entry point
 
-OntoShip is a Claude Code marketplace (`ontoship`) shipping two plugins:
+OntoShip is a Claude Code marketplace (`ontoship`) shipping **gitmark** — an md+git
+knowledge base (FTS5 search, HTML graph, ontology linter) plus the spec-driven dev-flow
+built on top of it.
 
-- **gitmark** — an md+git knowledge base (FTS5 search, HTML graph, ontology linter) plus
-  the spec-driven dev-flow built on top of it.
-- **destructive-guard** — a PreToolUse hook that turns destructive shell commands into
-  y/n confirmations.
+> **destructive-guard** (the PreToolUse safety hook) now lives in its own repo:
+> [github.com/vakovalskii/destructive-guard](https://github.com/vakovalskii/destructive-guard).
 
 ## Where things live
 
@@ -16,7 +16,6 @@ skills/
   kb-search/           the gitmark CLI engine (gitmark.py) + SKILL.md
   kb-curate/           rules for maintaining the KB as a typed ontology
   dev-flow/            the gated ship pipeline
-destructive-guard/     the safety hook (hooks/, tests/)
 docs/                  the knowledge base itself (this is the KB)
 ```
 
