@@ -100,7 +100,8 @@ name the target service/file if you know it.
 (`rm`, `git reset --hard`, `docker rm -v`, SQL `DROP/TRUNCATE`) and forces a y/n
 confirmation **even in bypassPermissions**, with sound + a macOS banner. Token-level
 parsing — no false positives on `perform`/`transform`/`terraform`. See
-[`destructive-guard/README.md`](destructive-guard/README.md).
+[`destructive-guard/README.md`](destructive-guard/README.md) and the interactive
+[**rules reference**](https://vakovalskii.github.io/ontoship/).
 
 > The banner uses `osascript` by default (always shown). To make **clicking it focus your
 > terminal** (iTerm2/Terminal/VS Code) instead of Script Editor, opt in with
