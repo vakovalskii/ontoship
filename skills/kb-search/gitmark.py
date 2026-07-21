@@ -8,7 +8,7 @@ Source of truth = markdown. Всё производное (поисковый и
 (n-gram: substring, опечатки, кириллица). Чистый python stdlib. Оффлайн.
 
 Команды:
-    gitmark index  [--root .] [--force]      построить/обновить индекс
+    gitmark [--root .] index [--force]       построить/обновить индекс
     gitmark search "<q>" [-k 8] [--json]      искать (bm25 ∪ trigram)
     gitmark map   [-o docs/docs-map.html]     self-contained HTML: дерево+рендер+граф
     gitmark serve [-p 8799]                   локальный http для просмотра HTML
