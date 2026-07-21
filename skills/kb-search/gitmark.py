@@ -35,7 +35,7 @@ VERSION = "0.1.0"
 EXCLUDE_DIRS = {
     ".git", "node_modules", ".next", "dist", "build", "__pycache__",
     ".pytest_cache", "_vendor", ".venv", "venv", "vendor",
-    ".gitmark",
+    ".gitmark", ".worktrees",
 }
 DB_REL = ".gitmark/index.db"
 HEAD_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*$")
