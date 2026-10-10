@@ -12,15 +12,15 @@ links:
 
 # OntoShip slash commands
 
-Reference for the slash commands shipped by the **OntoShip** Claude Code plugin. Each
+Reference for the slash commands shipped by the **OntoShip** integration. Each
 command is a thin `commands/*.md` definition that drives a skill or engine. Two families:
 
 - **KB curation & search** — `/kb`, `/kb-map`, `/doc`, `/onto-doc` — drive the GitMark
   CLI (`skills/kb-search/gitmark.py`) and the `kb-curate` ontology rules.
 - **Dev-flow** — `/ship` — drives the gated `dev-flow` pipeline from idea to production.
 
-`${CLAUDE_PLUGIN_ROOT}` below resolves to the installed plugin directory; the GitMark CLI
-is `${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py`.
+**For Qwen Code:** paths use `.qwen/skills/kb-search/gitmark.py`.
+**For Claude Code:** paths use `${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py`.
 
 ## Summary
 

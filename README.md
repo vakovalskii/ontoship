@@ -152,6 +152,48 @@ fuzzy/substring/non-Latin matching — detected automatically, degrades graceful
 Or just copy `skills/` and `commands/` into your repo's `.claude/` — project-local, no
 marketplace needed.
 
+## Usage with Qwen Code
+
+**This fork is adapted for Qwen Code.** Instead of Claude Code's plugin system, it uses
+Qwen Code's native skill system under `.qwen/skills/`.
+
+### Quick setup
+
+```bash
+# 1. Clone this fork
+git clone https://github.com/CryptoMiron/ontoship.git
+cd ontoship
+
+# 2. Copy into your project
+cp AGENTS.md /path/to/project/
+cp -r .qwen/skills/* /path/to/project/.qwen/skills/
+cp commands/*.md /path/to/project/commands/  # optional, for slash commands
+
+# 3. Index and search
+python3 .qwen/skills/kb-search/gitmark.py index
+python3 .qwen/skills/kb-search/gitmark.py search "your query"
+```
+
+### What changed from the original
+
+| Original (Claude Code) | Qwen Code (this fork) |
+|------------------------|----------------------|
+| `CLAUDE.md` (entry point) | `AGENTS.md` |
+| `${CLAUDE_PLUGIN_ROOT}/skills/` | `.qwen/skills/` |
+| `.claude/skills/` | `.qwen/skills/` |
+| Marketplace plugin | Direct `.qwen/` skills |
+
+### Slash commands
+
+All five slash commands work the same way:
+- `/kb <query>` — search
+- `/kb-map` — HTML graph
+- `/doc <topic>` — one doc
+- `/onto-doc` — full KB rebuild
+- `/ship <what>` — dev-flow pipeline
+
+See [docs/usage/qwen-code.md](docs/usage/qwen-code.md) for detailed setup instructions.
+
 ## Optional: the ontology (only if you want guardrails)
 
 The simple core needs **no frontmatter at all** — `index`/`search`/`map` work on raw
