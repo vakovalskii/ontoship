@@ -11,7 +11,7 @@ Scope hint: `$ARGUMENTS` — empty = whole repo; or a subset (e.g. `services/api
 
 1. **Survey the repo** — map top-level dirs, services/modules, entry points, build/deploy
    files, and existing docs. Check current coverage:
-   `python3 ${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py stat`.
+   `python3 .qwen/skills/kb-search/gitmark.py stat`.
 
 2. **Decompose into doc areas** — one unit of work per area:
    - each service/component → `docs/services/<svc>/README.md` (`node_type: service`)
@@ -27,11 +27,11 @@ Scope hint: `$ARGUMENTS` — empty = whole repo; or a subset (e.g. `services/api
    - add a line to the folder `README.md` index.
    Run independent areas in parallel; keep each agent scoped to its area to avoid collisions.
 
-4. **Entry point + indexes** — ensure `CLAUDE.md` / `AGENTS.md` exists as the entry point,
+4. **Entry point + indexes** — ensure `AGENTS.md` exists as the entry point,
    `docs/README.md` is the master index, and every folder has a README index.
 
 5. **Verify & derive** —
-   `python3 ${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py lint` (fix broken links / orphans /
+   `python3 .qwen/skills/kb-search/gitmark.py lint` (fix broken links / orphans /
    missing frontmatter), then `... gitmark.py index`, then
    `... gitmark.py map -o docs-map.html`.
 

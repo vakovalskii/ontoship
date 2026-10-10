@@ -8,8 +8,8 @@ Search the project's markdown knowledge base (all `.md`: docs/, README files, et
 User query: `$ARGUMENTS`
 
 Do:
-1. If `$ARGUMENTS` is empty — run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py stat` and show the `/kb <query>` syntax.
+1. If `$ARGUMENTS` is empty — run `python3 .qwen/skills/kb-search/gitmark.py stat` and show the `/kb <query>` syntax.
 2. Otherwise:
-   - Refresh the index if needed: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py index`.
-   - `python3 ${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py search "$ARGUMENTS" -k 8`
+   - Refresh the index if needed: `python3 .qwen/skills/kb-search/gitmark.py index`.
+   - `python3 .qwen/skills/kb-search/gitmark.py search "$ARGUMENTS" -k 8`
    - Summarize the top hits (which files, `file:line`), don't reprint whole snippets. Open the 1–2 most relevant files and answer the question.
