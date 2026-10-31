@@ -143,6 +143,8 @@ class Repo(unittest.TestCase):
         self.assertEqual(i9(), set())
         write(self.root, "AGENTS.md", "# Proj\nno map\n")
         self.assertEqual({p for p, _ in i9()}, {"AGENTS.md"})              # нет ссылки на индекс
+        write(self.root, "AGENTS.md", "# Proj\n> KB: [kb/README.md](kb/README.md)\n")
+        self.assertEqual(i9(), set())                                      # БЗ в своей папке
 
     def test_summary_alias_and_frozen(self):
         write(self.root, "docs/reference/snap.md",
