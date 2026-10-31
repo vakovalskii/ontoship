@@ -38,6 +38,10 @@ $G query 'generated.by~claude' trust=unverified           # agent-written, nobod
 $G query 'updated<2026-01-01' type=runbook                # possibly outdated runbooks
 $G health                         # KB scorecard: typed %, description %, links, trust, stale
 $G lint [paths…] [--json]         # ontology check (I1–I9)
+$G lint --baseline origin/main    # ratchet: exit 1 only if findings grew vs that ref
+$G toc [--write]                  # rebuild <!-- gitmark:toc --> blocks in folder READMEs
+$G secrets [files…]               # tokens / keys / passwords in the KB (masked)
+$G attrs [--write]                # .gitattributes: README indexes merge=union
 $G map -o docs-map.html           # self-contained HTML: tree + rendered md + link graph
 $G stat | version
 ```

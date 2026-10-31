@@ -18,13 +18,17 @@ tags, trigram-подстрока, fuzzy 4-граммы), слитые RRF на �
     gitmark map   [-o docs/docs-map.html]     self-contained HTML: дерево+рендер+граф
     gitmark serve [-p 8799]                   локальный http для просмотра HTML
     gitmark stat                              статистика индекса/БЗ
-    gitmark lint  [paths…] [--strict] [--json]  проверить онтологию (I1–I9)
+    gitmark lint  [paths…] [--strict] [--json] [--baseline REF]  проверить онтологию (I1–I9);
+                   с --baseline падает, только если замечаний стало больше, чем в REF (храповик)
     gitmark health [--json]                   скоркард БЗ: типизация, связи, trust, stale
+    gitmark toc   [--write]                   собрать блоки <!-- gitmark:toc --> в README-индексах
+    gitmark secrets [files…]                  найти в БЗ токены/ключи/пароли (exit 1 — нашёл)
+    gitmark attrs [--write]                   .gitattributes: README-индексы docs/ — merge=union
     gitmark version
 
 Совместимо с Open Knowledge Format (OKF v0.2): `type` = синоним `node_type`,
-`description`, `generated`/`verified` (trust tier), `stale_after`, `status: stable`,
-ссылки от корня (`/path.md`).
+`description` (синоним `summary`), `generated`/`verified` (trust tier), `stale_after`,
+`status: stable`, ссылки от корня (`/path.md`). `status: frozen` — снимок на дату, не правится.
 """
 from __future__ import annotations
 
@@ -56,7 +60,7 @@ def _load_yaml():
             _yaml = None
     return _yaml
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 EXCLUDE_DIRS = {
     ".git", "node_modules", ".next", "dist", "build", "__pycache__",
@@ -421,7 +425,7 @@ def load_doc(root: Path, p: Path) -> dict | None:
     meta = {
         "node_type": node_type_of(fm) or "",
         "title": str(fm.get("title") or title_of(body, rel)),
-        "description": str(fm.get("description") or ""),
+        "description": str(fm.get("description") or fm.get("summary") or ""),   # summary — синоним
         "tags": [str(x) for x in as_list(fm.get("tags"))],
         "aliases": [str(x) for x in as_list(fm.get("aliases"))],
         "status": str(fm.get("status") or ""),
@@ -842,7 +846,8 @@ NODE_TYPES = {"service", "reference", "runbook", "gotcha", "decision",
               "plan", "guide", "report", "index", "memory"}
 # Реальный словарь сервисов выводится per-repo из имён папок docs/** + vocab.service.
 SERVICES = {"_platform"}
-STATUSES = {"active", "draft", "deprecated", "archived", "stable"}   # stable — OKF
+STATUSES = {"active", "draft", "deprecated", "archived", "stable",   # stable — OKF
+            "frozen"}                                               # снимок на дату: не правится, факт — в живом доке
 LOAD_BEARING = {"service", "reference", "runbook", "plan", "decision"}
 BEARING_DIRS = {"reference", "ops", "plans", "decisions", "services"}
 CODE_DIRS = ("services", "apps", "packages", "libs", "modules")
@@ -1014,6 +1019,155 @@ def lint_entry(root: Path) -> list:
     return out
 
 
+# ─────────────────────────── храповик lint ───────────────────────────
+def _issue_key(i) -> tuple:
+    return (i[1], i[2], i[3])
+
+
+def cmd_lint_baseline(root: Path, ref: str) -> dict:
+    """Сравнить lint с состоянием REF (ветка/коммит): то же дерево из `git archive` во временной папке.
+    Отвечает на один вопрос — стало ли замечаний больше. Старый долг ветку не валит, новый — валит.
+    Не смогли сравнить → error (exit 2): «не посмотрел» нельзя выдавать за «не выросло»."""
+    import tarfile, tempfile, io
+    head = cmd_lint(root)
+    try:
+        r = subprocess.run(["git", "-C", str(root), "archive", "--format=tar", ref],
+                           capture_output=True, timeout=300)
+    except (OSError, subprocess.SubprocessError) as e:
+        return {"error": f"git archive {ref}: {e}"}
+    if r.returncode != 0:
+        return {"error": f"git archive {ref}: {r.stderr.decode('utf-8', 'replace').strip()}"}
+    with tempfile.TemporaryDirectory(prefix="gitmark-base-") as tmp:
+        with tarfile.open(fileobj=io.BytesIO(r.stdout)) as tar:
+            tar.extractall(tmp, filter="data") if hasattr(tarfile, "data_filter") else tar.extractall(tmp)
+        prev = os.environ.get("GITMARK_NO_GIT")
+        os.environ["GITMARK_NO_GIT"] = "1"   # во временной папке нет .git — обход ФС
+        try:
+            base = cmd_lint(Path(tmp))
+        finally:
+            if prev is None:
+                os.environ.pop("GITMARK_NO_GIT", None)
+            else:
+                os.environ["GITMARK_NO_GIT"] = prev
+    from collections import Counter
+    new = Counter(map(_issue_key, head["issues"])) - Counter(map(_issue_key, base["issues"]))
+    fresh = []
+    for i in head["issues"]:   # по одному на каждое превышение счётчика: дубли считаются
+        if new[_issue_key(i)] > 0:
+            new[_issue_key(i)] -= 1
+            fresh.append(i)
+    return {"head": len(head["issues"]), "base": len(base["issues"]), "new": fresh,
+            "grew": len(head["issues"]) > len(base["issues"]), "head_issues": head["issues"]}
+
+
+# ─────────────────────────── toc: собираемые индексы ───────────────────────────
+TOC_OPEN, TOC_CLOSE = "<!-- gitmark:toc -->", "<!-- /gitmark:toc -->"
+TOC_RE = re.compile(re.escape(TOC_OPEN) + r".*?" + re.escape(TOC_CLOSE), re.DOTALL)
+INDEX_NAMES = ("README.md", "index.md")
+
+
+def _toc_lines(root: Path, folder: Path, docs: dict) -> list:
+    """Строка на документ папки и на подпапку с индексом: `- [title](file) — description`."""
+    rows = []
+    for rel, d in sorted(docs.items()):
+        p = root / rel
+        if p.parent == folder and p.name not in INDEX_NAMES:
+            rows.append((p.name, d))
+        elif p.parent.parent == folder and p.name in INDEX_NAMES:
+            rows.append((f"{p.parent.name}/{p.name}", d))
+    out = []
+    for href, d in rows:
+        desc = d["meta"]["description"].strip().replace("\n", " ")
+        out.append(f"- [{d['meta']['title']}]({href})" + (f" — {desc}" if desc else ""))
+    return out
+
+
+def cmd_toc(root: Path, write: bool = False) -> dict:
+    """Индексы, которые СОБИРАЮТСЯ, а не пишутся: в README/index.md папки блок между
+    <!-- gitmark:toc --> и <!-- /gitmark:toc --> пересобирается из title/description документов.
+    Папка без маркеров не трогается. Без --write — проверка: stale = индексы, разошедшиеся с папкой."""
+    docs = load_docs(root)
+    stale, checked = [], 0
+    for rel in sorted(docs):
+        p = root / rel
+        if p.name not in INDEX_NAMES:
+            continue
+        text = p.read_text(encoding="utf-8")
+        if TOC_OPEN not in text:
+            continue
+        checked += 1
+        block = "\n".join([TOC_OPEN, *_toc_lines(root, p.parent, docs), TOC_CLOSE])
+        new = TOC_RE.sub(lambda _m: block, text, count=1)
+        if new != text:
+            stale.append(rel)
+            if write:
+                p.write_text(new, encoding="utf-8")
+    return {"checked": checked, "stale": stale, "written": write}
+
+
+# ─────────────────────────── secrets ───────────────────────────
+SECRET_PATTERNS = [
+    ("private-key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
+    ("openai-key", re.compile(r"\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{20,}")),
+    ("github-token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}")),
+    ("gitlab-token", re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}")),
+    ("slack-token", re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}")),
+    ("aws-key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("bearer", re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{24,}")),
+    ("assigned-secret", re.compile(
+        r"(?i)\b(?:password|passwd|secret|token|api[_-]?key)\s*[:=]\s*['\"]?([^\s'\"<>`]{8,})")),
+    ("url-credentials", re.compile(r"\b[a-z][a-z0-9+.-]*://[^/\s:@]+:[^/\s:@]{4,}@")),
+]
+# заглушки в примерах — не секрет
+PLACEHOLDER_RE = re.compile(r"(?i)^(?:\$\{?[A-Z_]+\}?|<[^>]*>|x{4,}|\*{4,}|\.{3,}|your[_-].*|changeme|example.*|placeholder.*)$")
+
+
+def _mask(s: str) -> str:
+    return s[:4] + "…" + str(len(s)) if len(s) > 8 else "…"
+
+
+def cmd_secrets(root: Path, files: list | None = None) -> dict:
+    """Токены, ключи и пароли в markdown БЗ (docs/** и md в корне) или в заданных файлах.
+    Значение маскируется: в выводе только вид и первые символы."""
+    if files:
+        targets = [(f, (root / f) if not Path(f).is_absolute() else Path(f)) for f in files]
+    else:
+        targets = [(p.relative_to(root).as_posix(), p) for p in iter_md(root)
+                   if in_kb(p.relative_to(root).as_posix())]
+    found = []
+    for rel, p in targets:
+        try:
+            lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for n, line in enumerate(lines, 1):
+            for name, rx in SECRET_PATTERNS:
+                for m in rx.finditer(line):
+                    val = m.group(m.lastindex or 0)
+                    if PLACEHOLDER_RE.match(val.strip()):
+                        continue
+                    found.append((rel, n, name, _mask(val)))
+    return {"checked": len(targets), "found": found}
+
+
+# ─────────────────────────── .gitattributes ───────────────────────────
+UNION_LINES = ("docs/**/README.md merge=union", "docs/**/index.md merge=union",
+               "docs/README.md merge=union")
+
+
+def cmd_attrs(root: Path, write: bool = False) -> dict:
+    """README-индексы — append-списки: параллельные ветки дописывают строки, `merge=union` склеивает их
+    без конфликта. Дубли и порядок потом выравнивает `gitmark toc --write`."""
+    f = root / ".gitattributes"
+    have = f.read_text(encoding="utf-8").splitlines() if f.exists() else []
+    missing = [l for l in UNION_LINES if l not in have]
+    if write and missing:
+        tail = "" if not have or have[-1] == "" else "\n"
+        with f.open("a", encoding="utf-8") as fh:
+            fh.write(tail + "# gitmark: индексы базы знаний склеиваются при слиянии\n" + "\n".join(missing) + "\n")
+    return {"missing": missing, "written": write and bool(missing)}
+
+
 # ─────────────────────────── health (скоркард) ───────────────────────────
 def cmd_health(root: Path) -> dict:
     """Насколько БЗ — онтология, а не куча файлов. Считается по docs/** (или по всем,
@@ -1051,7 +1205,7 @@ def cmd_health(root: Path) -> dict:
         "docs": len(content), "indexes": len(scope) - len(content), "all_md": len(docs),
         "typed_pct": pct(len(typed)),
         "title_pct": pct(sum(1 for d in content.values() if fm_of(d).get("title"))),
-        "description_pct": pct(sum(1 for d in content.values() if fm_of(d).get("description"))),
+        "description_pct": pct(sum(1 for d in content.values() if fm_of(d).get("description") or fm_of(d).get("summary"))),
         "updated_pct": pct(sum(1 for d in content.values()
                                if fm_of(d).get("updated") or isinstance(fm_of(d).get("generated"), dict))),
         "typed_links_pct": pct(sum(1 for d in content.values() if fm_links(d["fm"]))),
@@ -1210,7 +1364,15 @@ def main(argv=None):
     lp.add_argument("paths", nargs="*", help="ограничить файлами (по умолчанию — все docs/)")
     lp.add_argument("--strict", action="store_true", help="exit 1 при любых ERR")
     lp.add_argument("--json", action="store_true")
+    lp.add_argument("--baseline", metavar="REF",
+                    help="храповик: exit 1, только если замечаний больше, чем в REF (exit 2 — не смог сравнить)")
     hp = sub.add_parser("health", help="скоркард БЗ"); hp.add_argument("--json", action="store_true")
+    tp = sub.add_parser("toc", help="собрать блоки gitmark:toc в индексах")
+    tp.add_argument("--write", action="store_true", help="записать; без флага — проверка (exit 1, если разошлись)")
+    scp = sub.add_parser("secrets", help="токены/ключи/пароли в БЗ")
+    scp.add_argument("files", nargs="*", help="проверить эти файлы (по умолчанию — md базы знаний)")
+    atp = sub.add_parser("attrs", help=".gitattributes: merge=union для README-индексов")
+    atp.add_argument("--write", action="store_true")
     sub.add_parser("version", help="версия")
     a = ap.parse_args(argv)
     root = Path(a.root).resolve() if a.root else repo_root(Path.cwd())
@@ -1261,6 +1423,40 @@ def main(argv=None):
         print(f"GitMark · {s['files']} файлов · {s['areas']} папок · {s['chunks']} чанков · "
               f"{s['links']} ссылок ({s['typed_links']} типизир.) · {s['bytes']//1024} KB · "
               f"trigram={'on' if s['trigram'] else 'off'}\n  типы: {types or '—'}")
+    elif a.cmd == "lint" and a.baseline:
+        r = cmd_lint_baseline(root, a.baseline)
+        if "error" in r:
+            print(f"\033[31mне смог сравнить\033[0m — {r['error']}", file=sys.stderr); sys.exit(2)
+        for lvl, code, path, msg in r["new"]:
+            col = "\033[31m" if lvl == "ERR" else "\033[33m"
+            print(f"{col}{lvl}\033[0m \033[90m{code}\033[0m {path} — {msg}")
+        verdict = "\033[31mвыросло\033[0m" if r["grew"] else "\033[32mне выросло\033[0m"
+        print(f"\n{verdict}: {a.baseline} {r['base']} → сейчас {r['head']} · новых {len(r['new'])}")
+        if r["grew"]:
+            sys.exit(1)
+    elif a.cmd == "toc":
+        r = cmd_toc(root, a.write)
+        for rel in r["stale"]:
+            print(f"{'✓ собран' if a.write else 'разошёлся'}: {rel}")
+        print(f"индексов с блоком gitmark:toc: {r['checked']} · {'обновлено' if a.write else 'разошлось'}: {len(r['stale'])}")
+        if r["stale"] and not a.write:
+            sys.exit(1)
+    elif a.cmd == "secrets":
+        r = cmd_secrets(root, a.files or None)
+        for rel, n, name, masked in r["found"]:
+            print(f"\033[31m{rel}:{n}\033[0m {name} {masked}")
+        print(f"{'✓ чисто' if not r['found'] else f'найдено: {len(r[chr(102)+chr(111)+chr(117)+chr(110)+chr(100)])}'} ({r['checked']} файлов)")
+        if r["found"]:
+            sys.exit(1)
+    elif a.cmd == "attrs":
+        r = cmd_attrs(root, a.write)
+        if not r["missing"]:
+            print("✓ .gitattributes: индексы склеиваются (merge=union)")
+        else:
+            print(("✓ дописано в .gitattributes:\n  " if a.write else "нет в .gitattributes (gitmark attrs --write):\n  ")
+                  + "\n  ".join(r["missing"]))
+            if not a.write:
+                sys.exit(1)
     elif a.cmd == "lint":
         r = cmd_lint(root, a.paths or None)
         if a.json:

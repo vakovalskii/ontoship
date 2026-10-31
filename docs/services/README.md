@@ -3,7 +3,6 @@ node_type: index
 title: Services
 service: _platform
 status: active
-updated: 2026-06-16
 links:
   part_of: [../README.md]
 ---

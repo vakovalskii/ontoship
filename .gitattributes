@@ -1,0 +1,4 @@
+# gitmark: индексы базы знаний склеиваются при слиянии
+docs/**/README.md merge=union
+docs/**/index.md merge=union
+docs/README.md merge=union

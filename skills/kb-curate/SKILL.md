@@ -76,6 +76,14 @@ code dirs (one line each). When the KB gains a folder or a top dir moves — upd
 Found a project with everything in `CLAUDE.md`? `git mv CLAUDE.md AGENTS.md`, add the header,
 write the import. `lint` checks it (I9). Full model: `docs/ontology.md` → Entry point.
 
+## Indexes — append-only, built where possible
+
+- A folder `README.md` is an index: no `updated:` in it, add new lines **at the end** of their
+  section, don't reorder. `gitmark attrs --write` once per repo → indexes merge with `union`.
+- If the README has `<!-- gitmark:toc -->` … `<!-- /gitmark:toc -->`, don't hand-edit the block:
+  run `gitmark toc --write` after adding/renaming docs (the line comes from `title` + `description`).
+- `summary:` is read as `description`; a dated snapshot gets `status: frozen` and is not edited.
+
 ## When EDITING (UPDATE)
 
 - Meaning changed → bump `updated:` (and `generated.at` if an agent rewrote it).
@@ -91,6 +99,9 @@ write the import. `lint` checks it (I9). Full model: `docs/ontology.md` → Entr
 
 ```bash
 python3 <plugin>/skills/kb-search/gitmark.py lint     # invariants I1–I9
+python3 <plugin>/skills/kb-search/gitmark.py lint --baseline origin/main   # KB with debt: only "did it grow?"
+python3 <plugin>/skills/kb-search/gitmark.py toc --write   # if folder READMEs use gitmark:toc blocks
+python3 <plugin>/skills/kb-search/gitmark.py secrets  # nothing token-shaped in the KB
 python3 <plugin>/skills/kb-search/gitmark.py index    # rebuild search
 python3 <plugin>/skills/kb-search/gitmark.py health   # optional: KB scorecard
 ```
@@ -102,7 +113,7 @@ code path, past `stale_after`. Fix until clean.
 
 - `node_type`: service|reference|runbook|gotcha|decision|plan|guide|report|index
   (OKF's `type:` is accepted as a synonym)
-- `status`: active|draft|deprecated|archived (OKF `stable` = active)
+- `status`: active|draft|deprecated|archived|frozen (OKF `stable` = active; `frozen` — dated snapshot, never edited)
 - link types: documents|depends_on|supersedes|relates_to|implemented_by|part_of
 - `service`: your project's controlled vocabulary. Declare it (and any extra types,
   statuses, link types) in the frontmatter of `docs/ontology.md`:
