@@ -24,11 +24,12 @@ thing in **1.5 s** with ~50 MB of RAM.
 Markdown is the source of truth — the thing you and your AI assistant read directly, in
 any editor. Everything **derived** (a search index, this HTML overview, the link graph) is
 **regenerated** from the md, so git stays clean. No service, no database, no embeddings,
-no vendor. The entry point is `CLAUDE.md` / `AGENTS.md`; every folder's `README.md` is its
-index.
+no vendor. The entry point is `AGENTS.md` (read by every agent; `CLAUDE.md` just imports
+it with `@AGENTS.md`); every folder's `README.md` is its index.
 
 ```
-CLAUDE.md / AGENTS.md      ← entry point
+AGENTS.md                  ← entry point: header, rules, short tree of /docs
+CLAUDE.md                  ← one line: @AGENTS.md
 /docs
   README.md                ← master index
   /services
@@ -69,7 +70,7 @@ No layer underneath needs a database, a schema or embeddings.
 | `map` | self-contained **HTML**: collapsible tree + rendered markdown + a force/radial **graph** of links |
 | `serve` | tiny local HTTP server to view the map |
 | `stat` | index/KB stats |
-| `lint` | *(optional)* ontology checks I1–I8: frontmatter, vocabularies, orphans, broken links, typed links to missing code, past `stale_after` |
+| `lint` | *(optional)* ontology checks I1–I9: frontmatter, vocabularies, orphans, broken links, typed links to missing code, past `stale_after`, entry point (`AGENTS.md` + `@AGENTS.md`) |
 | `health` | KB scorecard: typed %, description %, typed links, orphans, trust tiers, stale, duplicate docs |
 | `version` | — |
 

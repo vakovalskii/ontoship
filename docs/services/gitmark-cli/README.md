@@ -142,7 +142,7 @@ load-bearing doc with no in/out links and no `links:` block), I5 (a `docs/` fold
 `cmd_map()` (gitmark.py:441-537) produces one standalone HTML file (`_MAP_HTML` template,
 gitmark.py:619+) with the data inlined as JSON: a collapsible per-area file tree, the
 rendered markdown of each doc, and a radial link graph. The graph is laid out by BFS from an
-entry node (`CLAUDE.md` → `README.md` → first file), with ring = distance-from-entry; it
+entry node (`AGENTS.md` → `CLAUDE.md` → `README.md` → first file), with ring = distance-from-entry; it
 supports drag, wheel-zoom, and clicking a node to open the doc. If the optional `markdown`
 package is installed, docs render to HTML; otherwise they show as raw `<pre>` text (the CLI
 prints a hint to `pip install markdown`).

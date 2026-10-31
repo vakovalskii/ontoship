@@ -5,7 +5,7 @@ service: _platform
 status: active
 updated: 2026-06-16
 links:
-  part_of: [../CLAUDE.md]
+  part_of: [../AGENTS.md]
 ---
 
 # OntoShip — knowledge base
