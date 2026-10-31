@@ -71,6 +71,10 @@ No layer underneath needs a database, a schema or embeddings.
 | `serve` | tiny local HTTP server to view the map |
 | `stat` | index/KB stats |
 | `lint` | *(optional)* ontology checks I1–I9: frontmatter, vocabularies, orphans, broken links, typed links to missing code, past `stale_after`, entry point (`AGENTS.md` + `@AGENTS.md`) |
+| `lint --baseline <ref>` | ratchet for a KB with debt: fails only if there are **more** findings than in `<ref>` |
+| `toc [--write]` | indexes that are **built, not written**: the `<!-- gitmark:toc -->` block of a folder README is rebuilt from the docs' `title`/`description` |
+| `secrets [files…]` | tokens, keys, passwords in the KB, value masked; exit 1 when found |
+| `attrs [--write]` | `.gitattributes` with `merge=union` for README indexes, so parallel branches never conflict on them |
 | `health` | KB scorecard: typed %, description %, typed links, orphans, trust tiers, stale, duplicate docs |
 | `version` | — |
 

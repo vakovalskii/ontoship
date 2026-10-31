@@ -157,6 +157,23 @@ the import. Nested folders follow the same pair when they need their own rules.
   and a short tree linking `docs/README.md`; `CLAUDE.md`, if present, only imports it with a
   line `@AGENTS.md`. See [Entry point](#entry-point).
 
+## Indexes, snapshots, debt
+
+- **Indexes are append-lists, not documents with state.** A folder `README.md` carries no
+  `updated:` (git log knows), new lines go to the end of their section, and
+  `gitmark attrs --write` marks indexes `merge=union` in `.gitattributes` — parallel branches
+  (and parallel agents in worktrees) adding lines to one index merge without conflicts.
+- **Built, not written.** Put `<!-- gitmark:toc -->` … `<!-- /gitmark:toc -->` in a folder
+  README and `gitmark toc --write` fills it with `- [title](file) — description` for every doc
+  and sub-index of the folder; `gitmark toc` (no flag) fails when an index drifted. Hand-written
+  text around the block stays.
+- **`status: frozen`** — a snapshot on a date (audit, measurement, fleet state). Never edited:
+  when the fact changes, edit the living doc and leave the snapshot.
+- **Debt ratchet.** On a KB with old findings, gate CI or `pre-push` with
+  `gitmark lint --baseline origin/main`: it fails only when a change adds findings, so the gate
+  is green on day one and debt can only shrink.
+- **No secrets in the KB.** `gitmark secrets` scans the corpus for token/key/password shapes.
+
 Vocabularies are extensible per project in this file's own frontmatter
 (`vocab: {service: […], node_type: […], status: […], link: […]}`); without
 `vocab.service`, the service vocabulary is derived from folder names.
@@ -169,7 +186,7 @@ frontmatter. OntoShip reads OKF bundles as-is and adds what OKF deliberately lea
 | | OKF | OntoShip |
 |---|---|---|
 | type key | `type` (free string) | `node_type` (controlled vocab) — `type` accepted |
-| summary | `description` | `description` (same) |
+| summary | `description` | `description` (same; `summary:` accepted as a synonym) |
 | trust / lifecycle | `generated`, `verified`, `status`, `stale_after` | same fields; `stable` = `active` |
 | links | untyped, meaning in prose | **typed** (`documents`, `depends_on`, `supersedes`…) incl. doc → code |
 | folder index | `index.md` | `README.md` (`index.md` also accepted) |

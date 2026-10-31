@@ -144,6 +144,54 @@ class Repo(unittest.TestCase):
         write(self.root, "AGENTS.md", "# Proj\nno map\n")
         self.assertEqual({p for p, _ in i9()}, {"AGENTS.md"})              # нет ссылки на индекс
 
+    def test_summary_alias_and_frozen(self):
+        write(self.root, "docs/reference/snap.md",
+              "---\nnode_type: report\nsummary: Fleet snapshot on a date\nstatus: frozen\n"
+              "links:\n  relates_to: [arch2.md]\n---\n# Snap\n")
+        d = g.load_doc(self.root, self.root / "docs/reference/snap.md")
+        self.assertEqual(d["meta"]["description"], "Fleet snapshot on a date")
+        i2 = [i for i in g.cmd_lint(self.root)["issues"] if i[1] == "I2" and i[2] == "docs/reference/snap.md"]
+        self.assertEqual(i2, [])
+
+    def test_lint_baseline_ratchet(self):
+        r = self.root
+        git = lambda *a: subprocess.run(["git", "-C", str(r), *a], check=True, capture_output=True)
+        git("add", "-A"); git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base")
+        same = g.cmd_lint_baseline(r, "HEAD")
+        self.assertFalse(same["grew"]); self.assertEqual(same["new"], [])
+        write(r, "docs/reference/bad.md", "# Bad\nno frontmatter, see [x](missing.md)\n")
+        grew = g.cmd_lint_baseline(r, "HEAD")
+        self.assertTrue(grew["grew"])
+        self.assertTrue(all(i[2] == "docs/reference/bad.md" for i in grew["new"]))
+        self.assertIn("error", g.cmd_lint_baseline(r, "no-such-ref"))
+
+    def test_toc_builds_index_block(self):
+        r = self.root
+        write(r, "docs/reference/README.md", "# Reference\n\nintro\n\n<!-- gitmark:toc -->\nold\n<!-- /gitmark:toc -->\n")
+        check = g.cmd_toc(r)
+        self.assertEqual(check["stale"], ["docs/reference/README.md"])
+        g.cmd_toc(r, write=True)
+        text = (r / "docs/reference/README.md").read_text()
+        self.assertIn("intro", text)
+        self.assertIn("- [Architecture v2](arch2.md)", text)
+        self.assertNotIn("old", text)
+        self.assertEqual(g.cmd_toc(r)["stale"], [])
+
+    def test_secrets(self):
+        r = self.root
+        write(r, "docs/ops/keys.md", "token: ghp_" + "a" * 36 + "\npassword: <your-password>\napi_key=${API_KEY}\n")
+        found = g.cmd_secrets(r)["found"]
+        self.assertEqual([(f[0], f[1], f[2]) for f in found], [("docs/ops/keys.md", 1, "github-token"),
+                                                             ("docs/ops/keys.md", 1, "assigned-secret")])
+        self.assertTrue(all("a" * 10 not in f[3] for f in found))   # значение замаскировано
+
+    def test_attrs(self):
+        r = self.root
+        self.assertEqual(len(g.cmd_attrs(r)["missing"]), len(g.UNION_LINES))
+        g.cmd_attrs(r, write=True)
+        self.assertEqual(g.cmd_attrs(r)["missing"], [])
+        self.assertIn("merge=union", (r / ".gitattributes").read_text())
+
     def test_query(self):
         r = g.cmd_query(self.root, ["type=reference", "status!=deprecated"])
         self.assertEqual([x["path"] for x in r["rows"]], ["docs/reference/arch2.md"])

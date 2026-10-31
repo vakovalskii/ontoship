@@ -3,7 +3,6 @@ node_type: index
 title: Decisions
 service: _platform
 status: active
-updated: 2026-10-15
 links:
   part_of: [../README.md]
 ---

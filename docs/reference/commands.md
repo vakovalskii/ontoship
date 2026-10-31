@@ -116,6 +116,10 @@ is `${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py`.
 | `search "<q>" [--type --status --service]` | ranked, one result per file, with type/status/trust labels |
 | `query key=val … [--count-by key] [--fields …]` | structured questions over frontmatter, straight from md |
 | `lint [--json]` | ontology invariants I1–I9 |
+| `lint --baseline <ref>` | ratchet: exit 1 only if findings grew vs `<ref>`, exit 2 if it could not compare |
+| `toc [--write]` | rebuild `<!-- gitmark:toc -->` blocks in folder READMEs from `title`/`description`; without `--write` — check |
+| `secrets [files…]` | token / key / password shapes in the KB (masked); exit 1 when found |
+| `attrs [--write]` | `.gitattributes`: `merge=union` for README indexes |
 | `health [--json]` | KB scorecard: typed %, description %, typed links, orphans, trust, stale, duplicates |
 | `map` / `serve` / `stat` / `version` | HTML graph, local server, index stats, version |
 
