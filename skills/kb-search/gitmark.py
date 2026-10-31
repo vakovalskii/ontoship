@@ -60,7 +60,7 @@ def _load_yaml():
             _yaml = None
     return _yaml
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 EXCLUDE_DIRS = {
     ".git", "node_modules", ".next", "dist", "build", "__pycache__",
@@ -1012,8 +1012,9 @@ def lint_entry(root: Path) -> list:
             out.append(("WARN", "I9", "AGENTS.md", "нет точки входа AGENTS.md"))
         return out
     text = agents.read_text(encoding="utf-8", errors="replace")
-    if has_docs and not re.search(r"\]\(\.?/?docs/(README|index)\.md\)", text):
-        out.append(("WARN", "I9", "AGENTS.md", "нет ссылки на docs/README.md (индекс базы знаний)"))
+    # индекс базы знаний: обычно docs/README.md, но БЗ может жить и в другой папке (b24/, kb/)
+    if has_docs and not re.search(r"\]\(\.?/?[\w.-]+(?:/[\w.-]+)*/(?:README|index)\.md\)", text):
+        out.append(("WARN", "I9", "AGENTS.md", "нет ссылки на индекс базы знаний (docs/README.md или <папка>/README.md)"))
     if claude.exists() and not AGENTS_IMPORT_RE.search(claude.read_text(encoding="utf-8", errors="replace")):
         out.append(("WARN", "I9", "CLAUDE.md", "не подключает AGENTS.md строкой @AGENTS.md"))
     return out
