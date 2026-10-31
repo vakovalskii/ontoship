@@ -132,6 +132,18 @@ class Repo(unittest.TestCase):
         self.assertIn(("I7", "docs/reference/arch2.md"), codes)        # src/missing.py
         self.assertIn(("I4", "docs/reference/arch2.md"), codes)        # nope.md
 
+    def test_lint_entry_point(self):
+        i9 = lambda: {(i[2], i[3].split(" ")[0]) for i in g.cmd_lint(self.root)["issues"] if i[1] == "I9"}
+        self.assertEqual(i9(), {("AGENTS.md", "нет")})                       # docs/ есть, входа нет
+        write(self.root, "CLAUDE.md", "# Rules\nsee [docs](docs/README.md)\n")
+        self.assertEqual({p for p, _ in i9()}, {"CLAUDE.md"})              # всё в CLAUDE.md
+        write(self.root, "AGENTS.md", "# Proj\n> Start: [docs/README.md](docs/README.md)\n")
+        self.assertEqual({p for p, _ in i9()}, {"CLAUDE.md"})              # CLAUDE.md без импорта
+        write(self.root, "CLAUDE.md", "# CLAUDE.md\n\n@AGENTS.md\n")
+        self.assertEqual(i9(), set())
+        write(self.root, "AGENTS.md", "# Proj\nno map\n")
+        self.assertEqual({p for p, _ in i9()}, {"AGENTS.md"})              # нет ссылки на индекс
+
     def test_query(self):
         r = g.cmd_query(self.root, ["type=reference", "status!=deprecated"])
         self.assertEqual([x["path"] for x in r["rows"]], ["docs/reference/arch2.md"])

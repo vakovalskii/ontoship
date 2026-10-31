@@ -58,6 +58,24 @@ If the topic already exists — **edit the existing doc**, don't create a second
    `/` for repo-root-relative (OKF style, stable when docs move).
 5. **Add a line to the folder's `README.md`** (its index): `- [Title](file.md) — description`.
 
+## Entry point — AGENTS.md, CLAUDE.md imports it
+
+`AGENTS.md` is read by Codex, Qwen Code, Cursor and others; Claude Code reads `CLAUDE.md`.
+Keep one source: rules in `AGENTS.md`, `CLAUDE.md` is only
+
+```markdown
+# CLAUDE.md
+All rules live in `AGENTS.md`; Claude Code imports it below.
+
+@AGENTS.md
+```
+
+`AGENTS.md` starts with a header: one sentence on what the project is, a link to
+`docs/README.md`, 3–5 rules that hold everywhere, and a short tree of `docs/` and the top
+code dirs (one line each). When the KB gains a folder or a top dir moves — update that tree.
+Found a project with everything in `CLAUDE.md`? `git mv CLAUDE.md AGENTS.md`, add the header,
+write the import. `lint` checks it (I9). Full model: `docs/ontology.md` → Entry point.
+
 ## When EDITING (UPDATE)
 
 - Meaning changed → bump `updated:` (and `generated.at` if an agent rewrote it).
@@ -72,7 +90,7 @@ If the topic already exists — **edit the existing doc**, don't create a second
 ## Always at the end
 
 ```bash
-python3 <plugin>/skills/kb-search/gitmark.py lint     # invariants I1–I8
+python3 <plugin>/skills/kb-search/gitmark.py lint     # invariants I1–I9
 python3 <plugin>/skills/kb-search/gitmark.py index    # rebuild search
 python3 <plugin>/skills/kb-search/gitmark.py health   # optional: KB scorecard
 ```

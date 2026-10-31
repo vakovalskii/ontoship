@@ -27,7 +27,9 @@ Scope hint: `$ARGUMENTS` — empty = whole repo; or a subset (e.g. `services/api
    - add a line to the folder `README.md` index.
    Run independent areas in parallel; keep each agent scoped to its area to avoid collisions.
 
-4. **Entry point + indexes** — ensure `CLAUDE.md` / `AGENTS.md` exists as the entry point,
+4. **Entry point + indexes** — `AGENTS.md` is the entry point: a header (what the project is,
+   3–5 key rules) and a short tree of `docs/` linking `docs/README.md`. `CLAUDE.md` holds only
+   a line `@AGENTS.md` (move an existing `CLAUDE.md` into `AGENTS.md` first, no copies; lint I9).
    `docs/README.md` is the master index, and every folder has a README index.
 
 5. **Verify & derive** —

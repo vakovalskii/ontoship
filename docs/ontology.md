@@ -3,7 +3,7 @@ node_type: reference
 title: GitMark ontology — a knowledge model over code
 service: _platform
 status: active
-description: "The OntoShip document model: node types, frontmatter properties, typed links, trust and lifecycle fields (OKF-compatible) and the lint invariants I1–I8."
+description: "The OntoShip document model: node types, frontmatter properties, typed links, trust and lifecycle fields (OKF-compatible) and the lint invariants I1–I9."
 updated: 2026-10-15
 tags: [ontology, palantir, okf, node-type, links, frontmatter, trust]
 links:
@@ -112,6 +112,37 @@ Here, Actions = the **curation procedures** a human/agent runs (see `kb-curate` 
 CREATE → classify, place, frontmatter, link, index. UPDATE → bump `updated`/`status`.
 DEPRECATE → `status` + `supersedes`. LINK → no orphans. REINDEX → `gitmark index`.
 
+## Entry point
+
+One file for every agent: `AGENTS.md` is read by Codex, Qwen Code, Cursor and others;
+Claude Code reads `CLAUDE.md`. So the rules live in `AGENTS.md` and `CLAUDE.md` imports
+it — never a copy, or the two drift apart.
+
+```markdown
+# AGENTS.md
+> **<Project>** — one sentence: what it is and for whom.
+> Before working read [docs/README.md](docs/README.md).
+> - 3–5 rules that hold everywhere (language, branches/MR, what never to commit)
+>
+> ```
+> docs/            knowledge base (OntoShip): README.md — master index
+>   services/      one folder per service
+>   reference/     specs; ops/ runbooks; decisions/ ADRs
+> src/ …           the code, one line per top dir
+> ```
+…the rest of the rules…
+```
+
+```markdown
+# CLAUDE.md
+All rules live in `AGENTS.md`; Claude Code imports it below.
+
+@AGENTS.md
+```
+
+A project that keeps everything in `CLAUDE.md` moves it to `AGENTS.md` (`git mv`) and leaves
+the import. Nested folders follow the same pair when they need their own rules.
+
 ## Invariants (checked by `gitmark lint`)
 
 - **I1.** Every load-bearing doc has frontmatter with a valid `node_type`.
@@ -122,6 +153,9 @@ DEPRECATE → `status` + `supersedes`. LINK → no orphans. REINDEX → `gitmark
 - **I6.** A `supersedes` target has `status: deprecated|archived`.
 - **I7.** A `documents`/`implemented_by` target (code path) exists.
 - **I8.** `stale_after` has not passed.
+- **I9.** The entry point is `AGENTS.md` with a header (what the project is, the key rules)
+  and a short tree linking `docs/README.md`; `CLAUDE.md`, if present, only imports it with a
+  line `@AGENTS.md`. See [Entry point](#entry-point).
 
 Vocabularies are extensible per project in this file's own frontmatter
 (`vocab: {service: […], node_type: […], status: […], link: […]}`); without
@@ -139,7 +173,7 @@ frontmatter. OntoShip reads OKF bundles as-is and adds what OKF deliberately lea
 | trust / lifecycle | `generated`, `verified`, `status`, `stale_after` | same fields; `stable` = `active` |
 | links | untyped, meaning in prose | **typed** (`documents`, `depends_on`, `supersedes`…) incl. doc → code |
 | folder index | `index.md` | `README.md` (`index.md` also accepted) |
-| validation | consumers must tolerate anything | `gitmark lint` invariants I1–I8 |
+| validation | consumers must tolerate anything | `gitmark lint` invariants I1–I9 |
 | search / query | out of scope | `gitmark search` (FTS5) + `gitmark query` (frontmatter) |
 
 ## Why this, not a wiki/Notion

@@ -37,7 +37,7 @@ $G query type=plan --count-by service                     # group & count (lists
 $G query 'generated.by~claude' trust=unverified           # agent-written, nobody verified
 $G query 'updated<2026-01-01' type=runbook                # possibly outdated runbooks
 $G health                         # KB scorecard: typed %, description %, links, trust, stale
-$G lint [paths…] [--json]         # ontology check (I1–I8)
+$G lint [paths…] [--json]         # ontology check (I1–I9)
 $G map -o docs-map.html           # self-contained HTML: tree + rendered md + link graph
 $G stat | version
 ```

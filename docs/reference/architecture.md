@@ -34,7 +34,7 @@ service, database, embeddings, or vendor to run:
 | `index.db` (SQLite FTS5) | the `.md` files | `.gitmark/` (gitignored) | `gitmark index` |
 | `docs-map.html` (tree + graph) | the `.md` files + their links | wherever you point it | `gitmark map` |
 
-The entry point is `CLAUDE.md` / `AGENTS.md`; every folder's `README.md` is its index.
+The entry point is `AGENTS.md`, `CLAUDE.md` imports it (`@AGENTS.md`); every folder's `README.md` is its index.
 Because derived artifacts never live in git, the KB can never drift from its index — you
 just re-run the CLI.
 

@@ -1,7 +1,7 @@
 {
   "name": "gitmark",
   "description": "OntoShip — ontology-driven docs that ship: a md+git knowledge base (FTS5 search, HTML graph, ontology linter) plus the spec-driven dev-flow built on it. CLI/plugin: gitmark.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "Valera Kovalskii",
     "url": "https://github.com/vakovalskii"

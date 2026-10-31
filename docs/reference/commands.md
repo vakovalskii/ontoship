@@ -99,7 +99,8 @@ is `${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py`.
      `kb-curate` on its slice only (search first, pick node_type + folder, frontmatter,
      ≥1 typed link, README index line). Independent areas run in parallel, scoped to avoid
      collisions.
-  4. **Entry point + indexes** — ensure `CLAUDE.md`/`AGENTS.md` exists, `docs/README.md`
+  4. **Entry point + indexes** — `AGENTS.md` with a header and short tree (link to
+     `docs/README.md`), `CLAUDE.md` = `@AGENTS.md` only (lint I9), `docs/README.md`
      is the master index, every folder has a README index.
   5. **Verify & derive** — `gitmark.py lint` (fix broken links/orphans/missing
      frontmatter), then `gitmark.py index`, then `gitmark.py map -o docs-map.html`.
@@ -114,7 +115,7 @@ is `${CLAUDE_PLUGIN_ROOT}/skills/kb-search/gitmark.py`.
 | `index` | rebuild `.gitmark/index.db` (chunks, frontmatter, typed links) |
 | `search "<q>" [--type --status --service]` | ranked, one result per file, with type/status/trust labels |
 | `query key=val … [--count-by key] [--fields …]` | structured questions over frontmatter, straight from md |
-| `lint [--json]` | ontology invariants I1–I8 |
+| `lint [--json]` | ontology invariants I1–I9 |
 | `health [--json]` | KB scorecard: typed %, description %, typed links, orphans, trust, stale, duplicates |
 | `map` / `serve` / `stat` / `version` | HTML graph, local server, index stats, version |
 

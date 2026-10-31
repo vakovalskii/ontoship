@@ -18,7 +18,7 @@ tags, trigram-подстрока, fuzzy 4-граммы), слитые RRF на �
     gitmark map   [-o docs/docs-map.html]     self-contained HTML: дерево+рендер+граф
     gitmark serve [-p 8799]                   локальный http для просмотра HTML
     gitmark stat                              статистика индекса/БЗ
-    gitmark lint  [paths…] [--strict] [--json]  проверить онтологию (I1–I8)
+    gitmark lint  [paths…] [--strict] [--json]  проверить онтологию (I1–I9)
     gitmark health [--json]                   скоркард БЗ: типизация, связи, trust, stale
     gitmark version
 
@@ -860,6 +860,7 @@ INVARIANTS = {
     "I6": "supersedes-цель не deprecated/archived",
     "I7": "links: documents/implemented_by → путь не существует",
     "I8": "просрочен stale_after",
+    "I9": "точка входа: AGENTS.md с шапкой и ссылкой на docs/README.md, CLAUDE.md подключает его (@AGENTS.md)",
 }
 
 
@@ -896,7 +897,7 @@ def _code_path_exists(root: Path, src_rel: str, target: str) -> bool:
 
 
 def cmd_lint(root: Path, paths: list | None = None) -> dict:
-    """Проверка инвариантов онтологии I1–I8. Возвращает {issues, errors, warnings, checked}."""
+    """Проверка инвариантов онтологии I1–I9. Возвращает {issues, errors, warnings, checked}."""
     docs = load_docs(root)
     known = set(docs)
     voc = project_vocab(docs)
@@ -980,9 +981,37 @@ def cmd_lint(root: Path, paths: list | None = None) -> dict:
         if d["meta"]["stale"]:
             issues.append(("WARN", "I8", rel, f"stale_after={fm.get('stale_after')} прошёл — перепроверь"))
 
+    if not sel:
+        issues += lint_entry(root)
+
     errs = [i for i in issues if i[0] == "ERR"]
     warns = [i for i in issues if i[0] == "WARN"]
     return {"issues": issues, "errors": errs, "warnings": warns, "checked": len(docs)}
+
+
+AGENTS_IMPORT_RE = re.compile(r"^@\.?/?AGENTS\.md\s*$", re.MULTILINE)
+
+
+def lint_entry(root: Path) -> list:
+    """I9 — точка входа. AGENTS.md читают Codex, Qwen Code, Cursor и др., CLAUDE.md — только Claude Code:
+    правила живут в AGENTS.md (шапка + короткое дерево docs/), CLAUDE.md подключает его строкой @AGENTS.md,
+    без копии — иначе два файла разъедутся."""
+    agents, claude = root / "AGENTS.md", root / "CLAUDE.md"
+    has_docs = (root / "docs").is_dir()
+    out = []
+    if not agents.exists():
+        if claude.exists():
+            out.append(("WARN", "I9", "CLAUDE.md",
+                        "вход только в CLAUDE.md — перенеси правила в AGENTS.md, в CLAUDE.md оставь @AGENTS.md"))
+        elif has_docs:
+            out.append(("WARN", "I9", "AGENTS.md", "нет точки входа AGENTS.md"))
+        return out
+    text = agents.read_text(encoding="utf-8", errors="replace")
+    if has_docs and not re.search(r"\]\(\.?/?docs/(README|index)\.md\)", text):
+        out.append(("WARN", "I9", "AGENTS.md", "нет ссылки на docs/README.md (индекс базы знаний)"))
+    if claude.exists() and not AGENTS_IMPORT_RE.search(claude.read_text(encoding="utf-8", errors="replace")):
+        out.append(("WARN", "I9", "CLAUDE.md", "не подключает AGENTS.md строкой @AGENTS.md"))
+    return out
 
 
 # ─────────────────────────── health (скоркард) ───────────────────────────
@@ -1072,11 +1101,11 @@ def cmd_map(root: Path, out: Path) -> dict:
                "size": f["size"], "rel": r} for r, f in files.items()]
     edges += [{"s": "area::" + f["area"], "t": r, "kind": "own"} for r, f in files.items()]
 
-    # BFS-уровни/углы от точки входа (CLAUDE.md|README.md|первый)
+    # BFS-уровни/углы от точки входа (AGENTS.md|CLAUDE.md|README.md|первый)
     import math
     from collections import defaultdict, deque
     nid = {n["id"]: n for n in nodes}
-    root_id = next((c for c in ("CLAUDE.md", "README.md") if c in nid), nodes[0]["id"])
+    root_id = next((c for c in ("AGENTS.md", "CLAUDE.md", "README.md") if c in nid), nodes[0]["id"])
     adj = defaultdict(set)
     for e in edges:
         adj[e["s"]].add(e["t"]); adj[e["t"]].add(e["s"])
@@ -1177,7 +1206,7 @@ def main(argv=None):
     mp = sub.add_parser("map", help="HTML обзор+граф"); mp.add_argument("-o", "--out", default=None)
     sv = sub.add_parser("serve", help="локальный http"); sv.add_argument("-p", "--port", type=int, default=8799)
     sub.add_parser("stat", help="статистика")
-    lp = sub.add_parser("lint", help="проверить онтологию (I1–I8)")
+    lp = sub.add_parser("lint", help="проверить онтологию (I1–I9)")
     lp.add_argument("paths", nargs="*", help="ограничить файлами (по умолчанию — все docs/)")
     lp.add_argument("--strict", action="store_true", help="exit 1 при любых ERR")
     lp.add_argument("--json", action="store_true")
